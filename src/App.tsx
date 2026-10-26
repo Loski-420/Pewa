@@ -14,6 +14,7 @@ import { AgeVerificationModal } from './components/AgeVerificationModal';
 import { KopoKopoModal } from './components/KopoKopoModal';
 import { DownloadAppModal } from './components/DownloadAppModal';
 import { WhatsAppChatButton } from './components/WhatsAppChatButton';
+import { AdminAuthLogin } from './components/AdminAuthLogin';
 
 export const CATALOG_VERSION = 'pewa_v2026_10_21_catalog_65_items_live_v7';
 
@@ -138,8 +139,45 @@ export default function App() {
     return [];
   });
 
-  // 8. Navigation & Modals State
-  const [currentView, setCurrentView] = useState<'store' | 'tracking' | 'rider' | 'admin'>('store');
+  // Helper: Detect whether current domain is admin.pewakitu.shop
+  const checkIsAdminDomain = () => {
+    if (typeof window === 'undefined') return false;
+    const hostname = window.location.hostname.toLowerCase();
+    const pathname = window.location.pathname.toLowerCase();
+    const params = new URLSearchParams(window.location.search);
+
+    // 1. Primary requested production domain: admin.pewakitu.shop
+    if (hostname === 'admin.pewakitu.shop' || hostname.startsWith('admin.')) return true;
+
+    // 2. Allow path-based route for preview / sub-routes
+    if (pathname === '/admin' || pathname.startsWith('/admin/')) return true;
+
+    // 3. Allow query parameter switch for AI Studio preview testing
+    if (params.get('domain') === 'admin.pewakitu.shop' || params.get('admin') === 'true') return true;
+
+    return false;
+  };
+
+  // 8. Admin Domain & Authentication State (strictly for admin.pewakitu.shop)
+  const [isAdminDomain, setIsAdminDomain] = useState<boolean>(checkIsAdminDomain);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    try {
+      return !!(localStorage.getItem('pewa_admin_auth') || sessionStorage.getItem('pewa_admin_auth'));
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    const handleUrlCheck = () => {
+      setIsAdminDomain(checkIsAdminDomain());
+    };
+    window.addEventListener('popstate', handleUrlCheck);
+    return () => window.removeEventListener('popstate', handleUrlCheck);
+  }, []);
+
+  // 9. Navigation & Modals State
+  const [currentView, setCurrentView] = useState<'store' | 'tracking' | 'rider'>('store');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isDownloadAppOpen, setIsDownloadAppOpen] = useState(false);
@@ -443,6 +481,133 @@ export default function App() {
     setRiders((prev) => prev.filter((r) => r.id !== riderId));
   };
 
+  // ------------------------------------------------------------------
+  // ADMIN SUBDOMAIN GATEWAY: admin.pewakitu.shop
+  // Restricted access strictly for the admin domain with phone & password auth
+  // ------------------------------------------------------------------
+  if (isAdminDomain) {
+    if (!isAdminAuthenticated) {
+      return (
+        <AdminAuthLogin
+          settings={settings}
+          onSuccess={() => setIsAdminAuthenticated(true)}
+          onGoToStore={() => {
+            if (window.location.hostname !== 'admin.pewakitu.shop') {
+              const url = new URL(window.location.href);
+              url.searchParams.delete('admin');
+              url.searchParams.delete('domain');
+              if (url.pathname.startsWith('/admin')) {
+                url.pathname = '/';
+              }
+              window.location.href = url.toString();
+            } else {
+              window.location.href = 'https://pewakitu.shop';
+            }
+          }}
+        />
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-[#07080c] text-stone-100 flex flex-col">
+        {/* Dedicated Admin Header for admin.pewakitu.shop */}
+        <header className="sticky top-0 z-40 bg-[#0c0d12]/95 backdrop-blur-md border-b border-[#d4af37]/30 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#d4af37]/60 shadow-[0_0_15px_rgba(212,175,55,0.25)] shrink-0">
+              <img src="/pwa-512x512.png" alt="Pewa Logo" className="w-full h-full object-cover" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-serif font-black text-white text-base tracking-tight">Pewa Administration</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#1b1c26] text-[#fae59e] border border-[#d4af37]/40">
+                  admin.pewakitu.shop
+                </span>
+              </div>
+              <span className="text-[11px] text-neutral-400">Authenticated Manager Session</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.location.hostname !== 'admin.pewakitu.shop') {
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete('admin');
+                  url.searchParams.delete('domain');
+                  if (url.pathname.startsWith('/admin')) {
+                    url.pathname = '/';
+                  }
+                  window.location.href = url.toString();
+                } else {
+                  window.open('https://pewakitu.shop', '_blank');
+                }
+              }}
+              className="py-1.5 px-3 rounded-xl bg-[#171924] hover:bg-[#202330] border border-neutral-700 hover:border-neutral-500 text-neutral-300 hover:text-white text-xs font-semibold transition cursor-pointer"
+            >
+              Customer Store ↗
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.removeItem('pewa_admin_auth');
+                sessionStorage.removeItem('pewa_admin_auth');
+                setIsAdminAuthenticated(false);
+              }}
+              className="py-1.5 px-3.5 rounded-xl bg-red-950/60 hover:bg-red-900 border border-red-500/50 text-red-200 hover:text-white font-semibold text-xs tracking-wide transition cursor-pointer flex items-center gap-1.5 shadow"
+            >
+              <span>Lock / Sign Out</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Admin Portal Body */}
+        <main className="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full">
+          <AdminPortal
+            products={products}
+            onAddProduct={handleAddProduct}
+            onUpdateProduct={handleUpdateProduct}
+            onDeleteProduct={handleDeleteProduct}
+            onPublishCatalog={handlePublishCatalog}
+            onImportCatalog={handleImportCatalog}
+            onNavigateToStore={() => {
+              if (window.location.hostname !== 'admin.pewakitu.shop') {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('admin');
+                url.searchParams.delete('domain');
+                if (url.pathname.startsWith('/admin')) {
+                  url.pathname = '/';
+                }
+                window.location.href = url.toString();
+              } else {
+                window.open('https://pewakitu.shop', '_blank');
+              }
+            }}
+            riders={riders}
+            onAddRider={handleAddRider}
+            onUpdateRider={handleUpdateRider}
+            onDeleteRider={handleDeleteRider}
+            orders={orders}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+            onAssignRider={handleAssignRider}
+            settings={settings}
+            onUpdateSettings={setSettings}
+            onSignOut={() => {
+              localStorage.removeItem('pewa_admin_auth');
+              sessionStorage.removeItem('pewa_admin_auth');
+              setIsAdminAuthenticated(false);
+            }}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // CUSTOMER STORE (pewakitu.shop / www.pewakitu.shop)
+  // Clean customer-facing storefront; no admin buttons or links visible
+  // ------------------------------------------------------------------
   return (
     <div className="min-h-screen flex flex-col bg-[#0b0c10] text-[#f3f4f6]">
       {/* 1. Age Verification Portal (blocks browsing if not confirmed) */}
@@ -455,6 +620,7 @@ export default function App() {
       <Navbar
         currentView={currentView}
         onNavigate={(view) => {
+          if (view === 'admin') return;
           setCurrentView(view);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
@@ -466,6 +632,7 @@ export default function App() {
         onResetAgeVerification={handleResetAgeVerification}
         onOpenDownloadApp={() => setIsDownloadAppOpen(true)}
         settings={settings}
+        isAdminDomain={false}
       />
 
       {/* 3. Main Views */}
@@ -477,6 +644,7 @@ export default function App() {
             onAddToCart={handleAddToCart}
             onOpenScheduleInCart={() => setIsCartOpen(true)}
             onOpenDownloadApp={() => setIsDownloadAppOpen(true)}
+            onNavigateToAdmin={undefined}
           />
         )}
 
@@ -499,30 +667,6 @@ export default function App() {
             orders={orders}
             onUpdateOrderStatus={handleUpdateOrderStatus}
             settings={settings}
-          />
-        )}
-
-        {currentView === 'admin' && (
-          <AdminPortal
-            products={products}
-            onAddProduct={handleAddProduct}
-            onUpdateProduct={handleUpdateProduct}
-            onDeleteProduct={handleDeleteProduct}
-            onPublishCatalog={handlePublishCatalog}
-            onImportCatalog={handleImportCatalog}
-            onNavigateToStore={() => {
-              setCurrentView('store');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            riders={riders}
-            onAddRider={handleAddRider}
-            onUpdateRider={handleUpdateRider}
-            onDeleteRider={handleDeleteRider}
-            orders={orders}
-            onUpdateOrderStatus={handleUpdateOrderStatus}
-            onAssignRider={handleAssignRider}
-            settings={settings}
-            onUpdateSettings={setSettings}
           />
         )}
       </main>
@@ -588,10 +732,12 @@ export default function App() {
       <Footer
         settings={settings}
         onNavigate={(view) => {
+          if (view === 'admin') return;
           setCurrentView(view);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onOpenDownloadApp={() => setIsDownloadAppOpen(true)}
+        isAdminDomain={false}
       />
 
       {/* 9. Direct Floating WhatsApp Contact Option (0712610337) */}

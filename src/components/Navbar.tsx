@@ -16,6 +16,7 @@ interface NavbarProps {
   onResetAgeVerification: () => void;
   onOpenDownloadApp: () => void;
   settings?: StoreSettings;
+  isAdminDomain?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -29,6 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onResetAgeVerification,
   onOpenDownloadApp,
   settings,
+  isAdminDomain = false,
 }) => {
   const totalCartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const cartSubtotal = cartItems.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
@@ -89,17 +91,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             Rider Hub
           </button>
 
-          <button
-            type="button"
-            onClick={() => onNavigate('admin')}
-            className={`whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
-              currentView === 'admin'
-                ? 'text-[#fae59e] border-b-2 border-[#d4af37] pb-1'
-                : 'text-neutral-400 hover:text-white'
-            }`}
-          >
-            Admin Portal
-          </button>
+          {isAdminDomain && (
+            <button
+              type="button"
+              onClick={() => onNavigate('admin')}
+              className={`whitespace-nowrap shrink-0 transition-all cursor-pointer flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold ${
+                currentView === 'admin'
+                  ? 'bg-[#d4af37] text-black font-bold shadow-[0_0_15px_rgba(212,175,55,0.4)]'
+                  : 'bg-[#181a24] text-[#fae59e] border border-[#d4af37]/60 hover:border-[#d4af37] hover:bg-[#222536]'
+              }`}
+              title="Open Admin Panel: Edit/Delete Products, Update Prices & Manage Orders"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Admin Panel</span>
+            </button>
+          )}
         </nav>
 
         {/* Zone 3: Primary Action, WhatsApp & Download App Button */}
@@ -180,12 +186,19 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           Riders
         </button>
-        <button
-          onClick={() => onNavigate('admin')}
-          className={`py-1 px-2 ${currentView === 'admin' ? 'text-[#fae59e] font-bold' : 'text-neutral-400'}`}
-        >
-          Admin
-        </button>
+        {isAdminDomain && (
+          <button
+            onClick={() => onNavigate('admin')}
+            className={`py-1 px-3 rounded-lg flex items-center gap-1 font-bold ${
+              currentView === 'admin'
+                ? 'bg-[#d4af37] text-black shadow'
+                : 'text-[#fae59e] bg-[#1a1c28] border border-[#d4af37]/60'
+            }`}
+          >
+            <ShieldCheck className="w-3 h-3 text-[#d4af37]" />
+            <span>Admin</span>
+          </button>
+        )}
       </div>
     </header>
   );

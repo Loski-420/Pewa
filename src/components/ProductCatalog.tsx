@@ -11,6 +11,7 @@ interface ProductCatalogProps {
   onAddToCart: (product: Product) => void;
   onOpenScheduleInCart: () => void;
   onOpenDownloadApp: () => void;
+  onNavigateToAdmin?: () => void;
 }
 
 const CATEGORIES: { label: string; value: 'all' | Category }[] = [
@@ -32,6 +33,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   onAddToCart,
   onOpenScheduleInCart,
   onOpenDownloadApp,
+  onNavigateToAdmin,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<'all' | Category>('all');
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all');
@@ -163,6 +165,18 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                 <UtensilsCrossed className="w-3.5 h-3.5 text-[#d4af37]" />
                 <span>Munchies</span>
               </button>
+
+              {onNavigateToAdmin && (
+                <button
+                  type="button"
+                  onClick={onNavigateToAdmin}
+                  className="py-3 px-4 rounded-xl bg-[#1a170f] border border-[#d4af37] text-[#fae59e] hover:bg-[#d4af37] hover:text-black text-xs font-semibold tracking-wider transition cursor-pointer flex items-center gap-1.5 shadow-[0_0_15px_rgba(212,175,55,0.25)]"
+                  title="Open Admin Panel to edit products, prices, stock, and orders"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <span>Admin Panel</span>
+                </button>
+              )}
             </div>
 
             {/* Quick trust bar: Till 349797 & WhatsApp */}
@@ -374,6 +388,24 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
         onClose={() => setQuickViewProduct(null)}
         onAddToCart={onAddToCart}
       />
+
+      {/* Floating Admin Mode Quick Launcher Button */}
+      {onNavigateToAdmin && (
+        <aside className="fixed bottom-6 right-6 z-30">
+          <button
+            type="button"
+            onClick={onNavigateToAdmin}
+            className="flex items-center gap-2 py-2.5 px-4 rounded-full bg-[#161824] hover:bg-[#d4af37] text-[#fae59e] hover:text-black border-2 border-[#d4af37] font-semibold text-xs tracking-wider transition-all shadow-[0_0_25px_rgba(212,175,55,0.4)] cursor-pointer hover:scale-105 active:scale-95 group"
+            title="Open Admin Panel to edit products, prices, stock, and orders"
+          >
+            <ShieldCheck className="w-4 h-4 text-[#d4af37] group-hover:text-black" />
+            <span className="font-bold">Admin Panel</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/40 group-hover:bg-black/20 text-[#fae59e] group-hover:text-black font-mono">
+              {products.length} Items
+            </span>
+          </button>
+        </aside>
+      )}
     </div>
   );
 };

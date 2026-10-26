@@ -52,6 +52,7 @@ interface AdminPortalProps {
   onAssignRider: (orderId: string, riderId: string) => void;
   settings: StoreSettings;
   onUpdateSettings: (settings: StoreSettings) => void;
+  onSignOut?: () => void;
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({
@@ -71,6 +72,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onAssignRider,
   settings,
   onUpdateSettings,
+  onSignOut,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'riders' | 'orders' | 'settings'>('inventory');
   const [isPublishing, setIsPublishing] = useState(false);
@@ -84,6 +86,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   // Edit / Add Product State
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+  const [inlinePriceId, setInlinePriceId] = useState<string | null>(null);
+  const [inlinePriceVal, setInlinePriceVal] = useState<number>(0);
 
   // Delete & Edit Rider State
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
@@ -358,26 +362,38 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             </button>
           )}
 
+          {onSignOut && (
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="py-1.5 px-3.5 rounded-xl bg-red-950/60 hover:bg-red-900 border border-red-500/50 text-red-200 hover:text-white font-semibold text-xs tracking-wide transition cursor-pointer flex items-center gap-1.5 shadow"
+              title="Sign out of admin.pewakitu.shop"
+            >
+              <Lock className="w-3.5 h-3.5 text-red-400" />
+              <span>Sign Out</span>
+            </button>
+          )}
+
           <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#121319] border border-neutral-800 overflow-x-auto">
             <button
               type="button"
               onClick={() => setActiveSubTab('inventory')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                 activeSubTab === 'inventory'
-                  ? 'bg-[#d4af37] text-black font-bold'
+                  ? 'bg-[#d4af37] text-black font-bold shadow'
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
               <Package className="w-3.5 h-3.5" />
-              <span>Inventory ({products.length})</span>
+              <span>Products & Prices ({products.length})</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveSubTab('orders')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                 activeSubTab === 'orders'
-                  ? 'bg-[#d4af37] text-black font-bold'
+                  ? 'bg-[#d4af37] text-black font-bold shadow'
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
@@ -388,27 +404,27 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             <button
               type="button"
               onClick={() => setActiveSubTab('riders')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                 activeSubTab === 'riders'
-                  ? 'bg-[#d4af37] text-black font-bold'
+                  ? 'bg-[#d4af37] text-black font-bold shadow'
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
               <Bike className="w-3.5 h-3.5" />
-              <span>Riders & Contacts ({riders.length})</span>
+              <span>Riders ({riders.length})</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveSubTab('settings')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                 activeSubTab === 'settings'
-                  ? 'bg-[#d4af37] text-black font-bold'
+                  ? 'bg-[#d4af37] text-black font-bold shadow'
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
               <Settings className="w-3.5 h-3.5" />
-              <span>WhatsApp & Points</span>
+              <span>Till, WhatsApp & Settings</span>
             </button>
           </div>
         </div>
@@ -523,20 +539,40 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsAddProductModalOpen(true)}
-                className="py-2 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#aa801a] text-black font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-1.5 hover:brightness-110 transition cursor-pointer shadow"
+                className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#aa801a] text-black font-bold text-xs tracking-wider uppercase flex items-center justify-center gap-1.5 hover:brightness-110 transition cursor-pointer shadow-[0_0_20px_rgba(212,175,55,0.3)]"
               >
                 <Plus className="w-4 h-4" />
-                <span>Add Item (Drink or Snack)</span>
+                <span>+ Add Item (Drink or Snack)</span>
               </button>
             </div>
           </div>
 
-          {/* Drinks Table */}
-          <div className="overflow-x-auto rounded-2xl border border-neutral-800 bg-[#121319]">
+          {/* Admin Management Header Strip */}
+          <div className="p-4 rounded-xl bg-gradient-to-r from-[#171924] to-[#121319] border border-[#d4af37]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#201d14] border border-[#d4af37]/50 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5 text-[#d4af37]" />
+              </div>
+              <div>
+                <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                  <span>Product Catalog & Price Management</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#201d14] border border-[#d4af37]/40 text-[#fae59e] font-mono">
+                    {filteredProducts.length} Items Listed
+                  </span>
+                </h4>
+                <p className="text-neutral-400 text-xs mt-0.5">
+                  Click <strong className="text-[#fae59e]">Edit</strong> to change prices, bottle sizes, photos, or descriptions. Click <strong className="text-red-400">Delete</strong> to remove an item. You can also click any price to edit it inline.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Drinks Table (Desktop & Tablet) */}
+          <div className="hidden md:block overflow-x-auto rounded-2xl border border-neutral-800 bg-[#121319] shadow-xl">
             <table className="w-full text-left text-xs">
               <thead className="bg-[#161822] text-neutral-400 uppercase text-[10px] tracking-wider border-b border-neutral-800">
                 <tr>
-                  <th className="py-3.5 px-4">Image (300px)</th>
+                  <th className="py-3.5 px-4">Photo</th>
                   <th className="py-3.5 px-4">Item & Brand</th>
                   <th className="py-3.5 px-4">Category</th>
                   <th className="py-3.5 px-4">Price (KES)</th>
@@ -579,8 +615,79 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         {prod.category}
                       </span>
                     </td>
-                    <td className="py-3 px-4 font-mono font-bold text-[#fae59e]">
-                      KES {prod.price.toLocaleString()}
+                    <td className="py-3 px-4">
+                      {inlinePriceId === prod.id ? (
+                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          <span className="text-[11px] text-neutral-400 font-mono">KES</span>
+                          <input
+                            type="number"
+                            autoFocus
+                            value={inlinePriceVal}
+                            onChange={(e) => setInlinePriceVal(Number(e.target.value))}
+                            className="w-24 px-2 py-1 bg-black border border-[#d4af37] rounded text-white text-xs font-mono font-bold"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                if (inlinePriceVal > 0) {
+                                  onUpdateProduct({ ...prod, price: inlinePriceVal, updatedAt: Date.now() });
+                                  setInlinePriceId(null);
+                                  setToastMessage({
+                                    title: `✓ Price Updated for ${prod.name}`,
+                                    subtitle: `New price: KES ${inlinePriceVal.toLocaleString()}`,
+                                    actionText: 'View on Store →',
+                                  });
+                                  setTimeout(() => setToastMessage(null), 4000);
+                                }
+                              } else if (e.key === 'Escape') {
+                                setInlinePriceId(null);
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (inlinePriceVal > 0) {
+                                onUpdateProduct({ ...prod, price: inlinePriceVal, updatedAt: Date.now() });
+                                setInlinePriceId(null);
+                                setToastMessage({
+                                  title: `✓ Price Updated for ${prod.name}`,
+                                  subtitle: `New price: KES ${inlinePriceVal.toLocaleString()}`,
+                                  actionText: 'View on Store →',
+                                });
+                                setTimeout(() => setToastMessage(null), 4000);
+                              }
+                            }}
+                            className="p-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer"
+                            title="Save New Price"
+                          >
+                            <Check className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setInlinePriceId(null)}
+                            className="p-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white cursor-pointer"
+                            title="Cancel"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 group/price">
+                          <span className="font-mono font-bold text-[#fae59e]">
+                            KES {prod.price.toLocaleString()}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInlinePriceId(prod.id);
+                              setInlinePriceVal(prod.price);
+                            }}
+                            className="opacity-50 group-hover/price:opacity-100 p-1 rounded hover:bg-neutral-800 text-[#fae59e] hover:text-white transition cursor-pointer"
+                            title="Quick edit price"
+                          >
+                            <Edit3 className="w-3 h-3 text-[#d4af37]" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <span
@@ -596,24 +703,26 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {/* Edit Button */}
+                        {/* Edit Button with Text & Icon */}
                         <button
                           type="button"
                           onClick={() => setEditingProduct({ ...prod })}
-                          className="p-1.5 rounded-lg bg-neutral-800 hover:bg-[#d4af37] text-neutral-300 hover:text-black transition cursor-pointer"
-                          title="Edit Drink/Snack & Price"
+                          className="py-1.5 px-3 rounded-lg bg-[#1a1d29] hover:bg-[#d4af37] text-[#fae59e] hover:text-black font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 border border-[#d4af37]/40 hover:border-[#d4af37] shadow-sm"
+                          title="Edit Item Details, Price & Photo"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
+                          <span>Edit</span>
                         </button>
 
-                        {/* Delete Button with Prompt */}
+                        {/* Delete Button with Text & Icon */}
                         <button
                           type="button"
                           onClick={() => setProductToDelete(prod)}
-                          className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-600 text-red-400 hover:text-white transition cursor-pointer border border-red-500/30"
-                          title="Delete Item from Inventory"
+                          className="py-1.5 px-3 rounded-lg bg-red-950/40 hover:bg-red-600 text-red-300 hover:text-white font-semibold text-xs transition cursor-pointer border border-red-500/40 flex items-center gap-1.5 shadow-sm"
+                          title="Delete Item from Inventory & Web Store"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete</span>
                         </button>
                       </div>
                     </td>
@@ -621,6 +730,72 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Product Cards (for Phones & Small Screens) */}
+          <div className="md:hidden space-y-3">
+            {filteredProducts.map((prod) => (
+              <div
+                key={prod.id}
+                className="p-4 rounded-xl bg-[#121319] border border-neutral-800 space-y-3 shadow-md"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-14 h-14 rounded-lg bg-[#0e0f14] border border-neutral-800 overflow-hidden flex items-center justify-center shrink-0">
+                    <ProductImage
+                      src={prod.imageUrl}
+                      alt={prod.name}
+                      category={prod.category}
+                      name={prod.name}
+                      width={56}
+                      height={56}
+                      className="w-full h-full rounded-lg"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="font-bold text-white text-sm truncate">{prod.name}</h4>
+                      {(prod.isCustom || prod.updatedAt || prod.createdAt) && (
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-[#382b08] text-[#fae59e] border border-[#d4af37]">
+                          UPDATED
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-neutral-400 font-mono mt-0.5">
+                      {prod.brand} · {prod.category}
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="font-mono font-bold text-sm text-[#fae59e]">
+                        KES {prod.price.toLocaleString()}
+                      </span>
+                      <span className={`font-mono text-xs ${prod.stock <= 5 ? 'text-red-400 font-bold' : 'text-neutral-400'}`}>
+                        {prod.stock} in stock
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile Action Buttons */}
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-neutral-800/80">
+                  <button
+                    type="button"
+                    onClick={() => setEditingProduct({ ...prod })}
+                    className="py-2 px-3 rounded-lg bg-[#1a1d29] border border-[#d4af37]/50 text-[#fae59e] font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-[#d4af37] hover:text-black transition"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Edit Price & Item</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setProductToDelete(prod)}
+                    className="py-2 px-3 rounded-lg bg-red-950/40 border border-red-500/40 text-red-300 font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-red-600 hover:text-white transition"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Item</span>
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -907,6 +1082,62 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           </div>
 
           <form onSubmit={handleSaveSettings} className="space-y-6">
+            {/* 0. admin.pewakitu.shop Domain Authentication */}
+            <div className="p-4 rounded-xl bg-[#0e1017] border border-[#d4af37]/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#201d14] border border-[#d4af37]/50 flex items-center justify-center text-[#d4af37]">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-white">admin.pewakitu.shop Login Security</h4>
+                    <p className="text-[11px] text-neutral-400">Phone and password required to enter the admin portal.</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#201d14] text-[#fae59e] border border-[#d4af37]/40">
+                  Domain Gateway
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-xs font-medium text-neutral-300 mb-1">
+                    Admin Phone Number (Login)
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-[#d4af37] absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      value={tempSettings.adminPhone || tempSettings.ownerWhatsAppPhone || '0712610337'}
+                      onChange={(e) =>
+                        setTempSettings({ ...tempSettings, adminPhone: e.target.value })
+                      }
+                      placeholder="0712610337"
+                      className="w-full pl-9 pr-3 py-2 bg-[#12141d] border border-neutral-700 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-[#d4af37]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-neutral-300 mb-1">
+                    Admin Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-[#d4af37] absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      value={tempSettings.adminPassword || 'Pewa@2026'}
+                      onChange={(e) =>
+                        setTempSettings({ ...tempSettings, adminPassword: e.target.value })
+                      }
+                      placeholder="Pewa@2026"
+                      className="w-full pl-9 pr-3 py-2 bg-[#12141d] border border-neutral-700 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-[#d4af37]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* 1. WhatsApp Dispatch & Support Section */}
             <div className="p-4 rounded-xl bg-[#0e1017] border border-neutral-800 space-y-3">
               <div className="flex items-center justify-between">

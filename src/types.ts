@@ -134,4 +134,6 @@ export interface StoreSettings {
   pointsPerOrder: number; // default 20 points awarded per order
   pointValueInKes: number; // 1 point = 1 Ksh (20 points = 20 Ksh, redeemable anytime)
   kopoKopoCredentials?: KopoKopoCredentials;
+  adminPhone?: string; // e.g. "0712610337"
+  adminPassword?: string; // e.g. "Pewa@2026"
 }

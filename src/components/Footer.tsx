@@ -8,9 +8,10 @@ interface FooterProps {
   settings: StoreSettings;
   onNavigate: (view: 'store' | 'tracking' | 'rider' | 'admin') => void;
   onOpenDownloadApp?: () => void;
+  isAdminDomain?: boolean;
 }
 
-export const Footer: React.FC<FooterProps> = ({ settings, onNavigate, onOpenDownloadApp }) => {
+export const Footer: React.FC<FooterProps> = ({ settings, onNavigate, onOpenDownloadApp, isAdminDomain = false }) => {
   const whatsappUrl = getDirectWhatsAppUrl(settings.ownerWhatsAppPhone || '254712610337');
 
   return (
@@ -85,14 +86,16 @@ export const Footer: React.FC<FooterProps> = ({ settings, onNavigate, onOpenDown
                   Rider Operations Hub
                 </button>
               </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('admin')}
-                  className="hover:text-white transition cursor-pointer"
-                >
-                  Admin Inventory & Price Management
-                </button>
-              </li>
+              {isAdminDomain && (
+                <li>
+                  <button
+                    onClick={() => onNavigate('admin')}
+                    className="hover:text-white transition cursor-pointer"
+                  >
+                    Admin Inventory & Price Management
+                  </button>
+                </li>
+              )}
               {onOpenDownloadApp && (
                 <li>
                   <button
