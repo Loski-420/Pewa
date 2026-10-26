@@ -1,0 +1,6 @@
+{
+  "name": "Pewa - Premium Spirits & Same-Day Delivery",
+  "description": "Kenya's premier online liquor store with fine whiskies, gins, brandies, wines, and beers, same-day delivery, real-time rider tracking, and Kopo Kopo payments.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

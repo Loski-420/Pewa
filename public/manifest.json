@@ -1,0 +1,37 @@
+{
+  "id": "/",
+  "name": "Pewa - Premium Spirits & Same-Day Delivery",
+  "short_name": "Pewa",
+  "description": "Kenya's premier online liquor store with fine spirits, cold beers, munchies, same-day delivery, and Kopo Kopo payments.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0c10",
+  "theme_color": "#0b0c10",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/pewa-circle-even.png",
+      "sizes": "1360x1360",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
