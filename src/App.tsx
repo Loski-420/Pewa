@@ -147,13 +147,13 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
 
     // 1. Primary requested production domain: admin.pewakitu.shop
-    if (hostname === 'admin.pewakitu.shop' || hostname.startsWith('admin.')) return true;
+    if (hostname === 'pewakitu.shop/admin' || hostname.startsWith('admin.')) return true;
 
     // 2. Allow path-based route for preview / sub-routes
     if (pathname === '/admin' || pathname.startsWith('/admin/')) return true;
 
     // 3. Allow query parameter switch for AI Studio preview testing
-    if (params.get('domain') === 'admin.pewakitu.shop' || params.get('admin') === 'true') return true;
+    if (params.get('domain') === 'pewakitu.shop/admin' || params.get('admin') === 'true') return true;
 
     return false;
   };
