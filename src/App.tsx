@@ -15,6 +15,7 @@ import { KopoKopoModal } from './components/KopoKopoModal';
 import { DownloadAppModal } from './components/DownloadAppModal';
 import { WhatsAppChatButton } from './components/WhatsAppChatButton';
 import { AdminAuthLogin } from './components/AdminAuthLogin';
+import { getAdminToken, clearAdminToken } from './utils/adminToken';
 
 export const CATALOG_VERSION = 'pewa_v2026_10_21_catalog_65_items_live_v7';
 
@@ -202,48 +203,33 @@ export default function App() {
 
   // Initial fetch from server API to sync across sessions and domains (e.g. www.pewakitu.ai.studio)
   useEffect(() => {
-    let isMounted = true;
-    const fetchLiveCatalog = async () => {
-      try {
-        const res = await fetch('/api/products');
-        if (res.ok) {
-          const serverProducts = await res.json();
-          if (Array.isArray(serverProducts) && serverProducts.length > 0 && isMounted) {
-            setProducts((prev) => {
-              // Preserve any custom items and user-edited items from local admin
-              const localMap = new Map(prev.map((p) => [p.id, p]));
-              const merged = serverProducts.map((sp: Product) => {
-                const local = localMap.get(sp.id);
-                // If the product was edited by user (updatedAt or isCustom), maintain the user's edits!
-                if (local && (local.isCustom || local.updatedAt)) {
-                  return local;
-                }
-                return sp;
-              });
-              // Keep items added locally that are not yet on the server
-              const serverIds = new Set(serverProducts.map((sp: Product) => sp.id));
-              const localOnly = prev.filter((p) => !serverIds.has(p.id));
-              const finalProducts = [...merged, ...localOnly].map((p) => ({
-                ...p,
-                imageUrl: sanitizeImageUrl(p.imageUrl, p.category, p.name),
-              }));
-              try {
-                localStorage.setItem('pewa_products', JSON.stringify(finalProducts));
-              } catch (_) {}
-              return finalProducts;
-            });
-          }
-        }
-      } catch (err) {
-        // Fallback safely to offline / localStorage data
+  const load = async () => {
+    try {
+      const res = await fetch('/api/products', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const final = data.map((p: Product) => ({
+          ...p,
+          imageUrl: sanitizeImageUrl(p.imageUrl, p.category, p.name),
+        }));
+        setProducts(final);
+        try { localStorage.setItem('pewa_products', JSON.stringify(final)); } catch (_) {}
       }
-    };
+    } catch {}
+  };
 
-    fetchLiveCatalog();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  load();
+  if (isAdminDomain) return; // admin loads once, customers keep refreshing
+
+  const onVisible = () => { if (document.visibilityState === 'visible') load(); };
+  document.addEventListener('visibilitychange', onVisible);
+  const timer = setInterval(load, 60000);
+  return () => {
+    document.removeEventListener('visibilitychange', onVisible);
+    clearInterval(timer);
+  };
+}, [isAdminDomain]);
 
   // Real-time synchronization across browser tabs, windows, and BroadcastChannel
   useEffect(() => {
@@ -404,14 +390,16 @@ export default function App() {
       }
     } catch (_) {}
 
-    // Async push to server store for cross-domain sync (e.g. www.pewakitu.ai.studio)
-    fetch('/api/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updated),
-    }).catch((err) => {
-      console.warn('Backend server sync skipped (offline or static hosting):', err);
-    });
+    const token = getAdminToken();
+    if (token) {
+      fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        body: JSON.stringify(updated),
+      })
+        .then((r) => { if (r.status === 401) clearAdminToken(); })
+        .catch(() => {});
+    }
   };
 
   // Admin Product Actions
@@ -451,12 +439,15 @@ export default function App() {
 
   const handlePublishCatalog = async (): Promise<boolean> => {
     try {
-      broadcastAndSaveProducts(products);
+      localStorage.setItem('pewa_products', JSON.stringify(products));
+      const token = getAdminToken(true); // asks for the token if missing
+      if (!token) return false;
       const res = await fetch('/api/products', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
         body: JSON.stringify(products),
       });
+      if (res.status === 401) clearAdminToken();
       return res.ok;
     } catch {
       return false;
