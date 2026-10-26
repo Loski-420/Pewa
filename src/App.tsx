@@ -153,10 +153,14 @@ export default function App() {
     if (pathname === '/admin' || pathname.startsWith('/admin/')) return true;
 
     // 3. Allow query parameter switch for AI Studio preview testing
-    if (params.get('domain') === 'pewakitu.shop/admin' || params.get('admin') === 'true') return true;
-
-    return false;
-  };
+    if (
+      params.get('domain') === 'pewakitu.shop/admin' ||
+      params.get('domain') === 'admin.pewakitu.shop' ||
+      params.get('admin') === 'true'
+    ) return true;
+    
+        return false;
+      };
 
   // 8. Admin Domain & Authentication State (strictly for admin.pewakitu.shop)
   const [isAdminDomain, setIsAdminDomain] = useState<boolean>(checkIsAdminDomain);
