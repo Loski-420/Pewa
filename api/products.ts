@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { verifyToken } from './_auth';
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL!,
@@ -14,9 +15,9 @@ export default async function handler(req: any, res: any) {
   }
 
   if (req.method === 'POST') {
-    if (req.headers['x-admin-token'] !== process.env.ADMIN_TOKEN) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+    if (!verifyToken(req.headers['x-admin-token'])) {
+  return res.status(401).json({ error: 'Unauthorized' });
+}
     if (!Array.isArray(req.body)) {
       return res.status(400).json({ error: 'Invalid payload' });
     }

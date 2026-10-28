@@ -4,7 +4,7 @@ export function formatWhatsAppOrderMessage(order: Order, settings: StoreSettings
   const itemsText = order.items
     .map(
       (item) =>
-        `• ${item.quantity}x ${item.product.name} (${item.product.volume}) [${item.product.category}] @ KES ${(
+        `• ${item.quantity}x ${item.product.name} (${item.product.volume || 'Standard'}) [${item.product.category}] - KES ${(
           item.product.price * item.quantity
         ).toLocaleString()}`
     )
@@ -17,37 +17,40 @@ export function formatWhatsAppOrderMessage(order: Order, settings: StoreSettings
       ? `• Points Redeemed Discount: -KES ${order.discountAmount} (${order.pointsRedeemed} pts)\n`
       : '';
 
-  const message = `🔔 *DISPATCH ACTION: NEW CONFIRMED ORDER (Send to 0712610337)*
+  const message = `🚨 *NEW PEWA DRINKS & MUNCHIES ORDER DISPATCH*
+To: *0712610337*
 
-📦 *Order Number:* ${order.orderNumber}
-🕒 *Time:* ${new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+📦 *Order #:* ${order.orderNumber}
+🕒 *Placed At:* ${new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+⏳ *Delivery Slot:* ${order.deliverySchedule}
 
-👤 *CUSTOMER CONTACT (WHATSAPP / M-PESA):*
+━━━━━━━━━━━━━━━━━━━━
+📱 *CUSTOMER WHATSAPP NUMBER:*
+• WhatsApp Number: *${order.safaricomPhone}*
 • Customer Name: ${order.customerName}
-• WhatsApp / M-Pesa Number: ${order.safaricomPhone}
 
 📍 *DELIVERY LOCATION:*
-• Estate / Area: ${order.location.estate}
-• Exact Address: ${order.location.address}
-• Landmark / Apt / Building: ${order.location.buildingOrHouse || 'None provided'}
-• Google Maps Location: ${mapsLink}
-• Delivery Window: ${order.deliverySchedule}
-
-🛒 *ORDERED ITEMS:*
+• Estate / Area: *${order.location.estate}*
+• Street / Landmark: *${order.location.address}*
+• Building / Apt / House No: ${order.location.buildingOrHouse || 'Not specified'}
+• 🗺️ GPS Google Maps Pin: ${mapsLink}
+${order.location.notes ? `• Gate / Delivery Notes: ${order.location.notes}\n` : ''}
+━━━━━━━━━━━━━━━━━━━━
+🛒 *ORDER ITEMS:*
 ${itemsText}
 
-💰 *TOTAL PRICE:*
+💰 *TOTAL CASH TO COLLECT:*
 • Items Subtotal: KES ${order.subtotal.toLocaleString()}
 ${discountLine}• Delivery Fee: KES ${order.deliveryFee.toLocaleString()}
-• *TOTAL AMOUNT TO COLLECT: KES ${order.total.toLocaleString()}*
+👉 *TOTAL CASH: KES ${order.total.toLocaleString()}*
 
 💳 *PAYMENT METHOD:*
-• Pay Upon Delivery via Kopo Kopo / M-PESA
-• Till Number: ${settings.kopoKopoTillNumber || '349797'}
-• Status: ${order.paymentStatus === 'paid_via_kopokopo' ? '✅ Paid' : '⏳ Pending Payment on Delivery'}
+• Pay on Delivery via Kopo Kopo / Lipa na M-PESA
+• Buy Goods Till: *${settings.kopoKopoTillNumber || '349797'}*
 
-🛵 *DISPATCH ACTION REQUIRED:*
-Please arrange rider dispatch immediately to ${order.customerName} at ${order.location.estate} (Contact: ${order.safaricomPhone})!`;
+━━━━━━━━━━━━━━━━━━━━
+🛵 *ACTION FOR 0712610337:*
+Please dispatch a rider to *${order.customerName}* at *${order.location.estate}* immediately! Call or WhatsApp customer at *${order.safaricomPhone}*.`;
 
   return message;
 }
@@ -89,10 +92,18 @@ export function generateWhatsAppLink(order: Order, settings: StoreSettings): str
 export function triggerWhatsAppNotification(order: Order, settings: StoreSettings): boolean {
   try {
     const url = generateWhatsAppLink(order, settings);
+    // On mobile devices, window.open often gets blocked by popup blockers.
+    // Try window.open, and if not allowed, fallback to direct location
     const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
-    return !!newWindow;
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+      window.location.href = url;
+    }
+    return true;
   } catch (err) {
     console.error('Failed to trigger WhatsApp notification:', err);
+    try {
+      window.location.href = generateWhatsAppLink(order, settings);
+    } catch (_) {}
     return false;
   }
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, MapPin, Phone, User, Clock, ShieldCheck, CheckCircle2, MessageSquare, ArrowRight, ExternalLink, AlertCircle, Award, Gift } from 'lucide-react';
 import { CartItem, Order, StoreSettings } from '../types';
+import { NAIROBI_ESTATES } from '../data/initialData';
 import { DeliveryMap } from './DeliveryMap';
 import { generateWhatsAppLink, triggerWhatsAppNotification } from '../utils/whatsapp';
 
@@ -27,16 +28,47 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onOpenTracking,
   onOpenKopoKopo,
 }) => {
-  const [customerName, setCustomerName] = useState('');
-  const [safaricomPhone, setSafaricomPhone] = useState('0722');
-  const [address, setAddress] = useState('Wood Avenue, Apt 3B');
-  const [estate, setEstate] = useState('Kilimani / Hurlingham');
-  const [buildingOrHouse, setBuildingOrHouse] = useState('Wood Avenue Court, 3rd Floor');
+  const [customerName, setCustomerName] = useState(() => {
+    try {
+      return localStorage.getItem('pewa_customer_name') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [safaricomPhone, setSafaricomPhone] = useState(() => {
+    try {
+      return localStorage.getItem('pewa_customer_phone') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [address, setAddress] = useState(() => {
+    try {
+      return localStorage.getItem('pewa_customer_address') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [estate, setEstate] = useState(() => {
+    try {
+      return localStorage.getItem('pewa_customer_estate') || 'Kilimani / Hurlingham';
+    } catch {
+      return 'Kilimani / Hurlingham';
+    }
+  });
+  const [buildingOrHouse, setBuildingOrHouse] = useState(() => {
+    try {
+      return localStorage.getItem('pewa_customer_building') || '';
+    } catch {
+      return '';
+    }
+  });
   const [notes, setNotes] = useState('');
   const [lat, setLat] = useState(-1.2950);
   const [lng, setLng] = useState(36.7910);
   const [phoneError, setPhoneError] = useState('');
   const [nameError, setNameError] = useState('');
+  const [addressError, setAddressError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
 
@@ -61,11 +93,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const total = Math.max(0, subtotal - pointsDiscount) + deliveryFee;
 
   const validatePhone = (phone: string): boolean => {
-    const clean = phone.replace(/[\s-]/g, '');
-    const kenyaMobile = /^(?:254|\+254|0)?(7|1)[0-9]{8}$/;
+    const clean = phone.replace(/[\s-+()]/g, '');
+    const kenyaMobile = /^(?:254|0)?(7|1)[0-9]{8}$/;
 
-    if (!kenyaMobile.test(clean)) {
-      setPhoneError('Please enter a valid Kenyan mobile number (e.g., 0712 345 678 or 0722...)');
+    if (!clean || !kenyaMobile.test(clean)) {
+      setPhoneError('Please enter a valid Kenyan WhatsApp number (e.g. 0712 345 678 or 07...)');
       return false;
     }
     setPhoneError('');
@@ -93,7 +125,22 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       return;
     }
 
+    if (!address.trim()) {
+      setAddressError('Please provide your street or landmark');
+      return;
+    }
+    setAddressError('');
+
     setIsSubmitting(true);
+
+    // Save contact & location in localStorage so customer doesn't have to retype next time
+    try {
+      localStorage.setItem('pewa_customer_name', customerName.trim());
+      localStorage.setItem('pewa_customer_phone', safaricomPhone.trim());
+      localStorage.setItem('pewa_customer_address', address.trim());
+      localStorage.setItem('pewa_customer_estate', estate);
+      localStorage.setItem('pewa_customer_building', buildingOrHouse.trim());
+    } catch (_) {}
 
     const orderNumber = `PEWA-${Math.floor(1000 + Math.random() * 9000)}`;
     const newOrder: Order = {
@@ -131,7 +178,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       notes: notes.trim(),
     };
 
-    // Trigger WhatsApp notification immediately to owner
+    // Trigger WhatsApp notification immediately to 0712610337
     triggerWhatsAppNotification(newOrder, settings);
 
     onOrderPlaced(newOrder, pointsToRedeem);
@@ -169,7 +216,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </p>
             </div>
 
-            {/* 10 Points Awarded Card */}
+            {/* Points Awarded Card */}
             <div className="p-3.5 rounded-xl bg-gradient-to-r from-[#201d12] via-[#2a2416] to-[#201d12] border border-[#d4af37]/50 text-left flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-[#3d3319] border border-[#d4af37] flex items-center justify-center text-[#fae59e]">
@@ -177,55 +224,51 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white">
-                    +10 Pewa Points Added to Your Profile!
+                    +{placedOrder.pointsEarned || 20} Pewa Points Added to Your Profile!
                   </h4>
                   <p className="text-[11px] text-[#fae59e]/90 mt-0.5">
-                    Points are redeemable for discounts on future drinks & munchies deliveries.
+                    Points are redeemable anytime for cash discounts on future orders.
                   </p>
                 </div>
               </div>
               <span className="px-2.5 py-1 rounded bg-[#d4af37] text-black font-mono font-bold text-xs shrink-0">
-                +10 PTS
+                +{placedOrder.pointsEarned || 20} PTS
               </span>
             </div>
 
             {/* WhatsApp Notification Notice Banner */}
-            <div className="p-4 rounded-xl bg-gradient-to-br from-[#072415] via-[#0d2e1c] to-[#072415] border border-emerald-500/50 text-left shadow-[0_0_25px_rgba(16,185,129,0.15)]">
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#062416] via-[#093520] to-[#062416] border-2 border-emerald-500/70 text-left shadow-[0_0_30px_rgba(16,185,129,0.25)] space-y-3">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-950 border border-emerald-500/60 flex items-center justify-center shrink-0 text-emerald-400">
-                  <MessageSquare className="w-5 h-5" />
+                <div className="w-11 h-11 rounded-xl bg-emerald-950 border border-emerald-400 flex items-center justify-center shrink-0 text-emerald-400 shadow-md">
+                  <MessageSquare className="w-6 h-6 fill-emerald-400" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between flex-wrap gap-1">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
-                      <span>WhatsApp Dispatch Sent to 0712610337</span>
+                    <span className="text-sm font-bold text-white flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+                      <span>WhatsApp Order & Location Dispatched to 0712610337</span>
                     </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 font-mono font-semibold">
+                    <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-900 text-emerald-300 border border-emerald-500/50 font-mono font-bold">
                       Target: 0712610337
                     </span>
                   </div>
-                  <p className="text-xs text-emerald-200/90 mt-1.5 leading-relaxed">
-                    Customer WhatsApp/M-Pesa (<strong className="text-white font-mono">{placedOrder.safaricomPhone}</strong>), delivery location (<strong className="text-white">{placedOrder.location.estate}</strong>), items, and total price (<strong className="text-[#fae59e] font-mono">KES {placedOrder.total.toLocaleString()}</strong>) have been prepared for <strong>0712610337</strong> so rider dispatch can be arranged immediately.
+                  <p className="text-xs text-emerald-200 mt-1 leading-relaxed">
+                    Customer WhatsApp: <strong className="text-white font-mono">{placedOrder.safaricomPhone}</strong> · Location: <strong className="text-white">{placedOrder.location.estate} · {placedOrder.location.address}</strong> · Total Cash: <strong className="text-[#fae59e] font-mono">KES {placedOrder.total.toLocaleString()}</strong>.
                   </p>
-                  
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <a
-                      href={generateWhatsAppLink(placedOrder, settings)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-xs text-black bg-emerald-400 hover:bg-emerald-300 px-4 py-2 rounded-xl transition font-bold shadow-md cursor-pointer hover:brightness-105"
-                    >
-                      <MessageSquare className="w-4 h-4 fill-black" />
-                      <span>Open WhatsApp & Send to 0712610337</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                    <span className="text-[11px] text-emerald-300/70 font-mono">
-                      (Direct Line: 0712610337)
-                    </span>
-                  </div>
                 </div>
               </div>
+
+              {/* Big Direct Send Button */}
+              <a
+                href={generateWhatsAppLink(placedOrder, settings)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-emerald-400 to-green-500 hover:from-emerald-400 hover:to-green-400 text-black font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4 fill-black" />
+                <span>Open WhatsApp & Send Order to 0712610337</span>
+                <ExternalLink className="w-4 h-4" />
+              </a>
             </div>
 
             {/* Order Summary Receipt Box */}
@@ -288,15 +331,33 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   Express Same-Day Checkout
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded bg-[#1e1c14] border border-[#d4af37]/40 text-[#fae59e] font-mono">
-                  +10 Points On This Order
+                  +{settings.pointsPerOrder || 20} Points On This Order
                 </span>
               </div>
               <h3 className="text-xl font-serif font-bold text-white">
                 Delivery Details & Contact
               </h3>
               <p className="text-xs text-neutral-400">
-                Provide your Safaricom mobile number and confirm your delivery location on the map.
+                Enter your WhatsApp number & delivery location. Your order details, total cash to pay, and GPS location link will be sent immediately to <strong className="text-emerald-400 font-mono">0712610337</strong>.
               </p>
+            </div>
+
+            {/* Direct WhatsApp Notice Banner */}
+            <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-950/60 via-[#0a2318] to-[#0e0f15] border border-emerald-500/40 flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-900/60 border border-emerald-500/50 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+                <MessageSquare className="w-4 h-4 fill-emerald-400" />
+              </div>
+              <div className="text-xs text-neutral-300 leading-snug">
+                <div className="flex items-center gap-2 font-semibold text-white">
+                  <span>Direct WhatsApp Dispatch</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 font-mono">
+                    Target: 0712610337
+                  </span>
+                </div>
+                <p className="text-[11px] text-emerald-200/90 mt-0.5">
+                  Your WhatsApp phone, complete delivery location with Google Maps link, and total cash will be sent straight to <strong>0712610337</strong> for rapid rider departure.
+                </p>
+              </div>
             </div>
 
             {/* Customer Contact */}
@@ -320,11 +381,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-300 mb-1">
-                  WhatsApp / M-Pesa Number *
+                <label className="block text-xs font-medium text-neutral-300 mb-1 flex items-center justify-between">
+                  <span>Customer WhatsApp Number *</span>
+                  <span className="text-[10px] text-emerald-400 font-mono">To: 0712610337</span>
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-[#d4af37] absolute left-3 top-2.5" />
+                  <Phone className="w-4 h-4 text-emerald-400 absolute left-3 top-2.5" />
                   <input
                     type="tel"
                     required
@@ -333,8 +395,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       setSafaricomPhone(e.target.value);
                       if (phoneError) validatePhone(e.target.value);
                     }}
-                    placeholder="e.g. 0712 610 337 or 0722 123 456"
-                    className="w-full pl-9 pr-3 py-2 bg-[#0e0f14] border border-neutral-700 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-[#d4af37]"
+                    placeholder="e.g. 0712 345 678 or 07... / 01..."
+                    className="w-full pl-9 pr-3 py-2 bg-[#0e0f14] border border-neutral-700 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-emerald-400"
                   />
                 </div>
                 {phoneError ? (
@@ -344,23 +406,70 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </p>
                 ) : (
                   <p className="text-[10px] text-emerald-400/90 mt-1">
-                    Will be sent to WhatsApp <strong>0712610337</strong> with your location & order for immediate rider dispatch
+                    Your WhatsApp number will be received by <strong>0712610337</strong> for rider coordination
                   </p>
                 )}
               </div>
             </div>
 
             {/* Delivery Location Section */}
-            <div>
-              <label className="block text-xs font-medium text-neutral-300 mb-1.5 flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-medium text-neutral-300 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-[#d4af37]" />
-                  <span>Delivery Location (Interactive Map & Nairobi Estates)</span>
+                  <span>Delivery Location (Estate & GPS Coordinates) *</span>
+                </label>
+                <span className="text-[11px] text-[#fae59e] font-mono bg-[#1e1c14] px-2 py-0.5 rounded border border-[#d4af37]/40">
+                  📍 {estate}
                 </span>
-                <span className="text-[10px] text-[#fae59e] font-mono">
-                  Pin: {estate}
-                </span>
-              </label>
+              </div>
+
+              {/* Estate Selector Dropdown + Custom Input */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] text-neutral-400 mb-1">
+                    Nairobi Estate / Area *
+                  </label>
+                  <select
+                    value={NAIROBI_ESTATES.some((e) => e.name === estate) ? estate : 'custom'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val !== 'custom') {
+                        const found = NAIROBI_ESTATES.find((item) => item.name === val);
+                        if (found) {
+                          setEstate(found.name);
+                          setLat(found.lat);
+                          setLng(found.lng);
+                        }
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-[#0e0f14] border border-neutral-700 rounded-lg text-white text-xs focus:outline-none focus:border-[#d4af37]"
+                  >
+                    {NAIROBI_ESTATES.map((est) => (
+                      <option key={est.name} value={est.name} className="bg-[#121319] text-white">
+                        {est.name}
+                      </option>
+                    ))}
+                    <option value="custom" className="bg-[#121319] text-[#fae59e]">
+                      ✍️ Other / Custom Area (Type on right)
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-neutral-400 mb-1">
+                    Estate / Neighborhood Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={estate}
+                    onChange={(e) => setEstate(e.target.value)}
+                    placeholder="e.g. Kilimani, Westlands, Kileleshwa, Karen..."
+                    className="w-full px-3 py-2 bg-[#0e0f14] border border-neutral-700 rounded-lg text-white text-xs focus:outline-none focus:border-[#d4af37]"
+                  />
+                </div>
+              </div>
 
               {/* Map Picker Component */}
               <DeliveryMap
@@ -518,7 +627,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div>
                   <span className="text-xs text-neutral-400">Total Due Upon Delivery</span>
                   <p className="text-[10px] text-neutral-500">
-                    Includes drinks & snacks + KES {deliveryFee} delivery · (+10 pts will be awarded)
+                    Includes drinks & snacks + KES {deliveryFee} delivery · (+{settings.pointsPerOrder || 20} pts will be awarded)
                   </p>
                 </div>
                 <span className="text-xl font-bold font-mono text-[#fae59e]">
@@ -531,9 +640,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#aa801a] text-black font-serif font-bold text-sm tracking-wide shadow-[0_0_25px_rgba(212,175,55,0.25)] hover:brightness-110 active:scale-[0.99] transition cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-4 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-emerald-400 to-[#d4af37] text-black font-serif font-bold text-sm tracking-wide shadow-[0_0_25px_rgba(16,185,129,0.35)] hover:brightness-110 active:scale-[0.99] transition cursor-pointer flex items-center justify-center gap-2"
             >
-              <span>{isSubmitting ? 'Placing Order...' : 'Confirm Order & Dispatch to WhatsApp 0712610337'}</span>
+              <MessageSquare className="w-5 h-5 fill-black text-black" />
+              <span>
+                {isSubmitting
+                  ? 'Dispatching Order to WhatsApp...'
+                  : `Confirm & Send to WhatsApp (0712610337) · KES ${total.toLocaleString()}`}
+              </span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
