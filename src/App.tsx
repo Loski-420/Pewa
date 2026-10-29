@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ShoppingBag, ArrowRight } from 'lucide-react';
 import { Product, CartItem, Order, Rider, OrderStatus, StoreSettings } from './types';
 import { INITIAL_PRODUCTS, INITIAL_RIDERS, INITIAL_ORDERS, INITIAL_SETTINGS } from './data/initialData';
 import { sanitizeImageUrl } from './utils/imageFallback';
@@ -735,8 +736,51 @@ export default function App() {
         isAdminDomain={false}
       />
 
-      {/* 9. Direct Floating WhatsApp Contact Option (0712610337) */}
-      <WhatsAppChatButton settings={settings} />
+      {/* 9. Mobile Sticky Action Bar: Always visible on phone when basket has items */}
+      {cartItems.length > 0 && currentView === 'store' && !isCartOpen && !isCheckoutOpen && (
+        <aside
+          aria-label="Mobile Checkout Bar"
+          className="fixed bottom-0 inset-x-0 z-40 p-3 bg-[#0d0e15]/95 backdrop-blur-md border-t border-[#d4af37]/40 md:hidden shadow-[0_-5px_30px_rgba(0,0,0,0.85)]"
+        >
+          <div className="flex items-center justify-between gap-3 max-w-lg mx-auto">
+            <button
+              type="button"
+              onClick={() => setIsCartOpen(true)}
+              className="flex items-center gap-2.5 text-left cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-xl bg-[#1c1a12] border border-[#d4af37]/50 flex items-center justify-center text-[#fae59e] shrink-0 relative">
+                <ShoppingBag className="w-5 h-5 text-[#d4af37]" />
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 text-black font-mono text-[11px] font-bold flex items-center justify-center shadow">
+                  {cartItems.reduce((acc, i) => acc + i.quantity, 0)}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-neutral-400 block uppercase tracking-wider font-semibold">
+                  Basket Total
+                </span>
+                <span className="text-sm font-bold font-mono text-[#fae59e]">
+                  KES {cartItems.reduce((acc, i) => acc + i.product.price * i.quantity, 0).toLocaleString()}
+                </span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsCheckoutOpen(true)}
+              className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-[#d4af37] to-amber-500 text-black font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95 transition cursor-pointer"
+            >
+              <span>Enter Name & Location</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </aside>
+      )}
+
+      {/* 10. Direct Floating WhatsApp Contact Option (0712610337) */}
+      <WhatsAppChatButton
+        settings={settings}
+        hasCartBar={cartItems.length > 0 && currentView === 'store' && !isCartOpen && !isCheckoutOpen}
+      />
     </div>
   );
 }

@@ -5,16 +5,20 @@ import { getDirectWhatsAppUrl } from '../utils/whatsapp';
 
 interface WhatsAppChatButtonProps {
   settings: StoreSettings;
+  hasCartBar?: boolean;
 }
 
-export const WhatsAppChatButton: React.FC<WhatsAppChatButtonProps> = ({ settings }) => {
+export const WhatsAppChatButton: React.FC<WhatsAppChatButtonProps> = ({ settings, hasCartBar = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const directPhone = settings.ownerWhatsAppPhone || '254712610337';
   const displayPhone = '0712610337';
   const whatsappUrl = getDirectWhatsAppUrl(directPhone, 'Hello Pewa! I would like to order drinks & munchies / have an inquiry.');
 
   return (
-    <aside aria-label="WhatsApp Support and Quick Order" className="fixed bottom-5 right-5 z-40 flex flex-col items-end">
+    <aside
+      aria-label="WhatsApp Support and Quick Order"
+      className={`fixed ${hasCartBar ? 'bottom-20 md:bottom-5' : 'bottom-5'} right-4 sm:right-5 z-40 flex flex-col items-end transition-all duration-300`}
+    >
       {/* Expandable Quick WhatsApp Card */}
       {isOpen && (
         <div className="mb-3 w-72 sm:w-80 rounded-2xl bg-[#0f1118]/95 border border-emerald-500/40 p-4 shadow-[0_10px_35px_rgba(0,0,0,0.7)] backdrop-blur-md animate-fade-in text-left">

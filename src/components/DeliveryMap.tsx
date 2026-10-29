@@ -149,10 +149,10 @@ export const DeliveryMap: React.FC<DeliveryMapProps> = ({
       </div>
 
       {/* Main Interactive Vector Map Canvas */}
-      <div className="relative w-full h-56 sm:h-72 overflow-hidden bg-[#0c0e14] select-none">
+      <div className="relative w-full h-44 sm:h-64 overflow-hidden bg-[#0c0e14] select-none touch-pan-y">
         <svg
           viewBox="0 0 100 100"
-          className={`w-full h-full ${mode === 'picker' ? 'cursor-crosshair' : 'cursor-default'}`}
+          className={`w-full h-full touch-pan-y ${mode === 'picker' ? 'cursor-crosshair' : 'cursor-default'}`}
           preserveAspectRatio="none"
           onClick={handleMapClick}
         >

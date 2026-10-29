@@ -21,8 +21,9 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({
   const isNonAlcoholic = isSnack || isExtras || product.abv === 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-2xl p-6 sm:p-7 rounded-2xl bg-[#121319] border border-[#d4af37]/40 shadow-2xl text-left">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md animate-fade-in overscroll-contain">
+      <div className="min-h-full flex items-start sm:items-center justify-center p-3 sm:p-6 text-left">
+        <div className="relative w-full max-w-2xl my-3 sm:my-8 p-5 sm:p-7 rounded-2xl bg-[#121319] border border-[#d4af37]/40 shadow-2xl text-left">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition"
@@ -146,5 +147,6 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({
         </div>
       </div>
     </div>
+  </div>
   );
 };

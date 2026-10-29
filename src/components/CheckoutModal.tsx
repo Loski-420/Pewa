@@ -187,8 +187,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-2xl my-6 p-5 sm:p-7 rounded-2xl bg-[#121319] border border-[#d4af37]/40 shadow-[0_0_45px_rgba(212,175,55,0.2)] text-left">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/90 backdrop-blur-md overscroll-contain">
+      <div className="min-h-full flex items-start sm:items-center justify-center p-2.5 sm:p-6 text-left">
+        <div className="relative w-full max-w-2xl my-2 sm:my-8 p-4 sm:p-7 rounded-2xl bg-[#121319] border border-[#d4af37]/40 shadow-[0_0_45px_rgba(212,175,55,0.2)] text-left">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -652,6 +653,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </button>
           </form>
         )}
+        </div>
       </div>
     </div>
   );

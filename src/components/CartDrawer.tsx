@@ -51,7 +51,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         onClick={onClose}
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
         <div className="w-screen max-w-md bg-[#111218] border-l border-[#d4af37]/30 shadow-2xl flex flex-col text-left">
           {/* Drawer Header */}
           <div className="p-5 border-b border-neutral-800 flex items-center justify-between bg-[#151620]">
@@ -227,9 +227,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <button
                 type="button"
                 onClick={onProceedToCheckout}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e6c25a] to-[#aa801a] text-black font-serif font-bold text-sm tracking-wide shadow-[0_0_20px_rgba(212,175,55,0.25)] hover:brightness-110 active:scale-[0.99] transition cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-[#d4af37] to-amber-500 text-black font-serif font-bold text-sm tracking-wide shadow-[0_0_20px_rgba(212,175,55,0.25)] hover:brightness-110 active:scale-[0.99] transition cursor-pointer flex items-center justify-center gap-2"
               >
-                <span>Proceed to Delivery & Checkout</span>
+                <span>Proceed to Enter Name & Location →</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

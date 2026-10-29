@@ -140,10 +140,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={onOpenCart}
-            className="py-2 px-3 sm:px-4 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#aa801a] text-black font-semibold text-xs tracking-wider uppercase flex items-center gap-2 hover:brightness-110 active:scale-95 transition cursor-pointer shadow-[0_0_15px_rgba(212,175,55,0.25)] whitespace-nowrap shrink-0"
+            className="py-1.5 sm:py-2 px-2.5 sm:px-4 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#aa801a] text-black font-semibold text-xs tracking-wider uppercase flex items-center gap-1.5 sm:gap-2 hover:brightness-110 active:scale-95 transition cursor-pointer shadow-[0_0_15px_rgba(212,175,55,0.25)] whitespace-nowrap shrink-0"
           >
             <ShoppingBag className="w-4 h-4 text-black" />
-            <span className="hidden sm:inline">Basket</span>
+            <span className="font-bold text-[11px] sm:text-xs">Basket</span>
             <span className="w-5 h-5 rounded-full bg-black text-[#fae59e] font-mono text-[11px] font-bold flex items-center justify-center">
               {totalCartCount}
             </span>
