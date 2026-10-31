@@ -54,14 +54,31 @@ export const AdminAuthLogin: React.FC<AdminAuthLoginProps> = ({
 
       if (isPhoneMatch && isPasswordMatch) {
         setIsSuccess(true);
-        // Persist session
+        // Persist session across all token keys
         const token = `pewa_admin_token_${Date.now()}`;
         if (rememberMe) {
           localStorage.setItem('pewa_admin_auth', token);
+          localStorage.setItem('pewa_admin_token', token);
           localStorage.setItem('pewa_admin_phone', cleanedInputPhone);
         } else {
           sessionStorage.setItem('pewa_admin_auth', token);
+          sessionStorage.setItem('pewa_admin_token', token);
         }
+        // Asynchronously request HMAC signed token from /api/admin-login
+        fetch('/api/admin-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: cleanedInputPhone, password }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data?.token) {
+              localStorage.setItem('pewa_admin_token', data.token);
+              if (!rememberMe) sessionStorage.setItem('pewa_admin_token', data.token);
+            }
+          })
+          .catch(() => {});
+
         setTimeout(() => {
           onSuccess();
         }, 600);

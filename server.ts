@@ -181,15 +181,19 @@ async function startServer() {
     res.json({ status: 'ok', time: new Date().toISOString() });
   });
 
-  // Explicit PWA Service Worker & Manifest routes
+  // Explicit PWA Service Worker & Manifest routes with zero cache
   app.get('/sw.js', (req, res) => {
     res.setHeader('Content-Type', 'application/javascript');
     res.setHeader('Service-Worker-Allowed', '/');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.resolve(__dirname, 'public', 'sw.js'));
   });
 
   app.get('/manifest.json', (req, res) => {
     res.setHeader('Content-Type', 'application/manifest+json');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.resolve(__dirname, 'public', 'manifest.json'));
   });
 
@@ -207,11 +211,22 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    // Serve production built assets
+    // Serve production built assets with aggressive anti-cache for HTML
     const distPath = path.resolve(__dirname, 'dist');
     if (fs.existsSync(distPath)) {
-      app.use(express.static(distPath));
+      app.use(express.static(distPath, {
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+          }
+        }
+      }));
       app.get('*', (req, res) => {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
         res.sendFile(path.join(distPath, 'index.html'));
       });
     }

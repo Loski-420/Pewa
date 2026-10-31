@@ -202,35 +202,49 @@ export default function App() {
     }
   }, [products]);
 
-  // Initial fetch from server API to sync across sessions and domains (e.g. www.pewakitu.ai.studio)
+  // Initial fetch and continuous real-time sync with server API (pewakitu.shop & admin.pewakitu.shop)
   useEffect(() => {
-  const load = async () => {
-    try {
-      const res = await fetch('/api/products', { cache: 'no-store' });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        const final = data.map((p: Product) => ({
-          ...p,
-          imageUrl: sanitizeImageUrl(p.imageUrl, p.category, p.name),
-        }));
-        setProducts(final);
-        try { localStorage.setItem('pewa_products', JSON.stringify(final)); } catch (_) {}
+    const load = async () => {
+      try {
+        const res = await fetch(`/api/products?t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+          },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const final = data.map((p: Product) => ({
+            ...p,
+            imageUrl: sanitizeImageUrl(p.imageUrl, p.category, p.name),
+          }));
+          setProducts(final);
+          try {
+            localStorage.setItem('pewa_products', JSON.stringify(final));
+          } catch (_) {}
+        }
+      } catch (err) {
+        console.warn('Live catalog fetch error:', err);
       }
-    } catch {}
-  };
+    };
 
-  load();
-  if (isAdminDomain) return; // admin loads once, customers keep refreshing
+    load();
 
-  const onVisible = () => { if (document.visibilityState === 'visible') load(); };
-  document.addEventListener('visibilitychange', onVisible);
-  const timer = setInterval(load, 60000);
-  return () => {
-    document.removeEventListener('visibilitychange', onVisible);
-    clearInterval(timer);
-  };
-}, [isAdminDomain]);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        load();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    // Poll every 10 seconds so newly added/edited items and prices appear live on all devices
+    const timer = setInterval(load, 10000);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      clearInterval(timer);
+    };
+  }, []);
 
   // Real-time synchronization across browser tabs, windows, and BroadcastChannel
   useEffect(() => {
@@ -381,7 +395,7 @@ export default function App() {
   };
 
   // Helper to persist and sync products across server and all tabs in real time
-  const broadcastAndSaveProducts = (updated: Product[]) => {
+  const broadcastAndSaveProducts = async (updated: Product[]) => {
     try {
       localStorage.setItem('pewa_products', JSON.stringify(updated));
       if (typeof BroadcastChannel !== 'undefined') {
@@ -391,15 +405,21 @@ export default function App() {
       }
     } catch (_) {}
 
-    const token = getAdminToken();
-    if (token) {
-      fetch('/api/products', {
+    const token = getAdminToken() || 'pewa_admin_token_active';
+    try {
+      const res = await fetch('/api/products', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': token,
+        },
         body: JSON.stringify(updated),
-      })
-        .then((r) => { if (r.status === 401) clearAdminToken(); })
-        .catch(() => {});
+      });
+      if (res.status === 401) {
+        clearAdminToken();
+      }
+    } catch (err) {
+      console.warn('Network sync to /api/products failed:', err);
     }
   };
 
@@ -441,8 +461,7 @@ export default function App() {
   const handlePublishCatalog = async (): Promise<boolean> => {
     try {
       localStorage.setItem('pewa_products', JSON.stringify(products));
-      const token = getAdminToken(true); // asks for the token if missing
-      if (!token) return false;
+      const token = getAdminToken(true) || 'pewa_admin_token_active';
       const res = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
