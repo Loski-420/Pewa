@@ -31,7 +31,10 @@ async function startServer() {
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.header(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-Requested-With, x-admin-token, Cache-Control, Pragma, Expires'
+    );
     if (req.method === 'OPTIONS') {
       return res.sendStatus(200);
     }
@@ -82,8 +85,8 @@ async function startServer() {
   app.get('/api/products', async (req, res) => {
     try {
       let products = readJson(PRODUCTS_FILE, null);
-      if (!products || !Array.isArray(products) || products.length === 0) {
-        // Fallback to initialData if store file not yet seeded
+      if (!fs.existsSync(PRODUCTS_FILE) || !Array.isArray(products)) {
+        // Fallback to initialData only if store file does not yet exist
         const { INITIAL_PRODUCTS } = await import('./src/data/initialData.ts');
         products = INITIAL_PRODUCTS;
         writeJson(PRODUCTS_FILE, products);

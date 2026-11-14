@@ -53,6 +53,9 @@ interface AdminPortalProps {
   settings: StoreSettings;
   onUpdateSettings: (settings: StoreSettings) => void;
   onSignOut?: () => void;
+  isCloudConnected?: boolean;
+  cloudSyncError?: string | null;
+  onConnectCloudSync?: () => Promise<void>;
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({
@@ -73,6 +76,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   settings,
   onUpdateSettings,
   onSignOut,
+  isCloudConnected = false,
+  cloudSyncError = null,
+  onConnectCloudSync,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'riders' | 'orders' | 'settings'>('inventory');
   const [isPublishing, setIsPublishing] = useState(false);
@@ -329,6 +335,35 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      {/* Cloud Sync Banner if not connected or sync error occurred */}
+      {(!isCloudConnected || cloudSyncError) && (
+        <div className="mb-6 p-4 rounded-2xl bg-amber-950/60 border border-amber-500/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-lg">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-amber-200">
+                {cloudSyncError
+                  ? 'Cloud Sync Warning'
+                  : 'Connect Google Cloud Sync for Live Cross-Domain Updates'}
+              </p>
+              <p className="text-amber-100/80 mt-0.5">
+                {cloudSyncError ||
+                  'Authorize with Google once so deletions and edits made on www.pewakitu.shop/admin immediately update pewakitu.shop and all customer phones.'}
+              </p>
+            </div>
+          </div>
+          {onConnectCloudSync && (
+            <button
+              type="button"
+              onClick={onConnectCloudSync}
+              className="py-2 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#aa801a] text-black font-bold text-xs uppercase tracking-wider hover:brightness-110 transition cursor-pointer shrink-0 shadow"
+            >
+              Connect Cloud Sync
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Admin Title Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-neutral-800">
         <div>
@@ -508,15 +543,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     setIsPublishing(false);
                     setToastMessage({
                       title: success
-                        ? '✓ Live Synced with www.pewakitu.ai.studio!'
-                        : '✓ Saved & Published to Web Storefront!',
-                      subtitle: `${products.length} products (Spirits, Munchies, Drinks & Extras) are updated in real time.`,
-                      actionText: 'View on Web Store →',
+                        ? '✓ Live Synced Across pewakitu.shop & All Devices!'
+                        : '⚠️ Cloud Sync Needed — Authorize Google Sync Above',
+                      subtitle: success
+                        ? `${products.length} products are live on pewakitu.shop and www.pewakitu.shop.`
+                        : 'Click Connect Cloud Sync above to push deletions across domains.',
+                      actionText: success ? 'View on Web Store →' : undefined,
                     });
                     setTimeout(() => setToastMessage(null), 6000);
                   }}
                   className="py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-semibold text-xs tracking-wide transition cursor-pointer flex items-center gap-1.5 shadow"
-                  title="Immediately pushes and synchronizes all added spirits, munchies, and uploaded photos to www.pewakitu.ai.studio"
+                  title="Immediately pushes and synchronizes all catalog items and deletions to pewakitu.shop"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isPublishing ? 'animate-spin' : ''}`} />
                   <span>{isPublishing ? 'Publishing...' : 'Publish to Web (Sync Live)'}</span>
@@ -528,7 +565,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   type="button"
                   onClick={onNavigateToStore}
                   className="py-2 px-3 rounded-xl bg-[#1e202e] border border-[#d4af37]/40 hover:border-[#d4af37] text-[#fae59e] font-semibold text-xs tracking-wide transition cursor-pointer flex items-center gap-1.5 shadow"
-                  title="View your store catalog exactly as customers see it on www.pewakitu.ai.studio"
+                  title="View your store catalog exactly as customers see it on pewakitu.shop"
                 >
                   <ExternalLink className="w-3.5 h-3.5 text-[#d4af37]" />
                   <span>View Live Web Store</span>
@@ -1148,13 +1185,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   <h4 className="text-sm font-semibold text-white">Direct WhatsApp Dispatch & Orders</h4>
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/40">
-                  Target: 0712610337
+                  Handle: @pewakitu.shop
                 </span>
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-neutral-300 mb-1">
-                  Store Owner WhatsApp Mobile Number *
+                  Store Owner WhatsApp Routing Number (Hidden from Customers) *
                 </label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
@@ -1175,7 +1212,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold flex items-center gap-1.5 transition shrink-0"
-                    title="Test WhatsApp connection to 0712610337"
+                    title="Test WhatsApp connection to @pewakitu.shop"
                   >
                     <span>Test WhatsApp</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -2051,8 +2088,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <button
                 type="button"
                 onClick={() => {
+                  const deletedName = productToDelete.name;
                   onDeleteProduct(productToDelete.id);
                   setProductToDelete(null);
+                  setToastMessage({
+                    title: `✓ "${deletedName}" permanently deleted!`,
+                    subtitle: isCloudConnected
+                      ? 'Removed live from pewakitu.shop and all customer devices.'
+                      : 'Removed locally. Click Connect Cloud Sync above to sync to pewakitu.shop.',
+                    actionText: 'View on Web Store →',
+                  });
+                  setTimeout(() => setToastMessage(null), 5000);
                 }}
                 className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition cursor-pointer"
               >

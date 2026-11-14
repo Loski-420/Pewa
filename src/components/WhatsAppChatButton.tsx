@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MessageCircle, ExternalLink, X, ShieldCheck } from 'lucide-react';
 import { StoreSettings } from '../types';
-import { getDirectWhatsAppUrl } from '../utils/whatsapp';
+import { getDirectWhatsAppUrl, WHATSAPP_DISPLAY_USERNAME } from '../utils/whatsapp';
 
 interface WhatsAppChatButtonProps {
   settings: StoreSettings;
@@ -11,7 +11,7 @@ interface WhatsAppChatButtonProps {
 export const WhatsAppChatButton: React.FC<WhatsAppChatButtonProps> = ({ settings, hasCartBar = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const directPhone = settings.ownerWhatsAppPhone || '254712610337';
-  const displayPhone = '0712610337';
+  const displayPhone = WHATSAPP_DISPLAY_USERNAME;
   const whatsappUrl = getDirectWhatsAppUrl(directPhone, 'Hello Pewa! I would like to order drinks & munchies / have an inquiry.');
 
   return (

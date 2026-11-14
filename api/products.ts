@@ -34,28 +34,43 @@ const readLocalProducts = () => {
   return [];
 };
 
-const writeLocalProducts = (products: any[]) => {
+const writeLocalProducts = (products: any[]): boolean => {
   try {
     const dir = path.dirname(PRODUCTS_FILE);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
     fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2), 'utf-8');
-  } catch (_) {}
+    return true;
+  } catch (_) {
+    return false;
+  }
 };
 
 export default async function handler(req: any, res: any) {
+  // Permissive CORS for cross-subdomain requests (www.pewakitu.shop / pewakitu.shop / admin.pewakitu.shop)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, X-Requested-With, x-admin-token, Cache-Control, Pragma, Expires'
+  );
+
   // Prevent any browser or CDN caching
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
   if (req.method === 'GET') {
     // 1. Try Redis first if available
     if (redis) {
       try {
         const remoteProducts = await redis.get('pewa_products');
-        if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
+        if (Array.isArray(remoteProducts)) {
           return res.status(200).json(remoteProducts);
         }
       } catch (err) {
@@ -74,23 +89,70 @@ export default async function handler(req: any, res: any) {
       return res.status(401).json({ error: 'Unauthorized: admin authentication required' });
     }
 
-    if (!Array.isArray(req.body)) {
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (_) {}
+    }
+
+    if (!Array.isArray(body)) {
       return res.status(400).json({ error: 'Invalid payload: expected product array' });
     }
+
+    let persisted = false;
 
     // Save to Redis if configured
     if (redis) {
       try {
-        await redis.set('pewa_products', req.body);
+        await redis.set('pewa_products', body);
+        persisted = true;
       } catch (err) {
         console.warn('Error writing to Redis:', err);
       }
     }
 
-    // Always attempt to write to local filesystem store as well
-    writeLocalProducts(req.body);
+    // Attempt to write to local filesystem store when writable (e.g. Node server)
+    if (writeLocalProducts(body)) {
+      persisted = true;
+    }
 
-    return res.status(200).json({ ok: true, count: req.body.length });
+    return res.status(200).json({ ok: true, persisted, count: body.length });
+  }
+
+  if (req.method === 'DELETE') {
+    const token = req.headers['x-admin-token'];
+    if (!verifyToken(token)) {
+      return res.status(401).json({ error: 'Unauthorized: admin authentication required' });
+    }
+
+    const id = String(req.query?.id || req.body?.id || '');
+    if (!id) {
+      return res.status(400).json({ error: 'Missing product id' });
+    }
+
+    let current: any[] = [];
+    if (redis) {
+      try {
+        const remote = await redis.get('pewa_products');
+        if (Array.isArray(remote)) current = remote;
+      } catch (_) {}
+    }
+    if (current.length === 0) {
+      current = readLocalProducts();
+    }
+    const filtered = current.filter((p: any) => p.id !== id);
+    let persisted = false;
+    if (redis) {
+      try {
+        await redis.set('pewa_products', filtered);
+        persisted = true;
+      } catch (_) {}
+    }
+    if (writeLocalProducts(filtered)) {
+      persisted = true;
+    }
+    return res.status(200).json({ ok: true, persisted, count: filtered.length });
   }
 
   res.status(405).end();

@@ -247,10 +247,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <div className="flex items-center justify-between flex-wrap gap-1">
                     <span className="text-sm font-bold text-white flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-                      <span>WhatsApp Order & Location Dispatched to 0712610337</span>
+                      <span>WhatsApp Order & Location Dispatched to @pewakitu.shop</span>
                     </span>
                     <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-900 text-emerald-300 border border-emerald-500/50 font-mono font-bold">
-                      Target: 0712610337
+                      Target: @pewakitu.shop
                     </span>
                   </div>
                   <p className="text-xs text-emerald-200 mt-1 leading-relaxed">
@@ -267,7 +267,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-emerald-400 to-green-500 hover:from-emerald-400 hover:to-green-400 text-black font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition cursor-pointer"
               >
                 <MessageSquare className="w-4 h-4 fill-black" />
-                <span>Open WhatsApp & Send Order to 0712610337</span>
+                <span>Open WhatsApp & Send Order to @pewakitu.shop</span>
                 <ExternalLink className="w-4 h-4" />
               </a>
             </div>
@@ -339,7 +339,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 Delivery Details & Contact
               </h3>
               <p className="text-xs text-neutral-400">
-                Enter your WhatsApp number & delivery location. Your order details, total cash to pay, and GPS location link will be sent immediately to <strong className="text-emerald-400 font-mono">0712610337</strong>.
+                Enter your WhatsApp number & delivery location. Your order details, total cash to pay, and GPS location link will be sent immediately to <strong className="text-emerald-400 font-mono">@pewakitu.shop</strong>.
               </p>
             </div>
 
@@ -352,11 +352,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="flex items-center gap-2 font-semibold text-white">
                   <span>Direct WhatsApp Dispatch</span>
                   <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 font-mono">
-                    Target: 0712610337
+                    Target: @pewakitu.shop
                   </span>
                 </div>
                 <p className="text-[11px] text-emerald-200/90 mt-0.5">
-                  Your WhatsApp phone, complete delivery location with Google Maps link, and total cash will be sent straight to <strong>0712610337</strong> for rapid rider departure.
+                  Your WhatsApp phone, complete delivery location with Google Maps link, and total cash will be sent straight to <strong>@pewakitu.shop</strong> for rapid rider departure.
                 </p>
               </div>
             </div>
@@ -384,7 +384,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <div>
                 <label className="block text-xs font-medium text-neutral-300 mb-1 flex items-center justify-between">
                   <span>Customer WhatsApp Number *</span>
-                  <span className="text-[10px] text-emerald-400 font-mono">To: 0712610337</span>
+                  <span className="text-[10px] text-emerald-400 font-mono">To: @pewakitu.shop</span>
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-emerald-400 absolute left-3 top-2.5" />
@@ -407,7 +407,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </p>
                 ) : (
                   <p className="text-[10px] text-emerald-400/90 mt-1">
-                    Your WhatsApp number will be received by <strong>0712610337</strong> for rider coordination
+                    Your WhatsApp number will be received by <strong>@pewakitu.shop</strong> for rider coordination
                   </p>
                 )}
               </div>
@@ -647,7 +647,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <span>
                 {isSubmitting
                   ? 'Dispatching Order to WhatsApp...'
-                  : `Confirm & Send to WhatsApp (0712610337) · KES ${total.toLocaleString()}`}
+                  : `Confirm & Send to WhatsApp (@pewakitu.shop) · KES ${total.toLocaleString()}`}
               </span>
               <ArrowRight className="w-4 h-4" />
             </button>

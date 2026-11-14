@@ -36,7 +36,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, onNavigate, onOpenDown
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 hover:text-white transition text-xs font-medium"
               >
                 <MessageCircle className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
-                <span>WhatsApp: <strong className="font-mono">0712610337</strong></span>
+                <span>WhatsApp: <strong className="font-mono">@pewakitu.shop</strong></span>
                 <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
               </a>
             </div>

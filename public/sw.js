@@ -1,5 +1,5 @@
-// Pewa Progressive Web App (PWA) Service Worker - v4
-const CACHE_NAME = 'pewa-cache-v4';
+// Pewa Progressive Web App (PWA) Service Worker - v5
+const CACHE_NAME = 'pewa-cache-v5';
 
 const STATIC_ASSETS = [
   '/',

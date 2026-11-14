@@ -23,7 +23,7 @@ export const KopoKopoModal: React.FC<KopoKopoModalProps> = ({
   onPaymentSuccess,
 }) => {
   const [stkState, setStkState] = useState<'idle' | 'sending' | 'prompted' | 'verified'>('idle');
-  const [phoneForStk, setPhoneForStk] = useState(customerPhone || '0712610337');
+  const [phoneForStk, setPhoneForStk] = useState(customerPhone || '');
   const [copied, setCopied] = useState(false);
   const [mpesaCode, setMpesaCode] = useState('');
   const [txnRef, setTxnRef] = useState('');
@@ -186,7 +186,7 @@ export const KopoKopoModal: React.FC<KopoKopoModalProps> = ({
                       type="text"
                       value={phoneForStk}
                       onChange={(e) => setPhoneForStk(e.target.value)}
-                      placeholder="e.g. 0712610337"
+                      placeholder="e.g. 0712 345 678"
                       className="w-full px-3 py-2 bg-[#0c0d12] border border-neutral-700 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-[#d4af37]"
                     />
                   </div>
@@ -271,7 +271,7 @@ export const KopoKopoModal: React.FC<KopoKopoModalProps> = ({
             className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 transition text-[11px]"
           >
             <MessageCircle className="w-3.5 h-3.5 fill-emerald-400" />
-            <span>Payment Help: WhatsApp <strong>0712610337</strong></span>
+            <span>Payment Help: WhatsApp <strong>@pewakitu.shop</strong></span>
             <ExternalLink className="w-3 h-3" />
           </a>
 

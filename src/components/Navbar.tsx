@@ -115,11 +115,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            title="Chat directly on WhatsApp (0712610337)"
+            title="Chat directly on WhatsApp (@pewakitu.shop)"
             className="flex items-center gap-1.5 py-1.5 px-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 font-semibold text-xs transition cursor-pointer shrink-0"
           >
             <MessageCircle className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
-            <span className="hidden sm:inline font-mono text-[11px] text-emerald-200">0712610337</span>
+            <span className="hidden sm:inline font-mono text-[11px] text-emerald-200">@pewakitu.shop</span>
           </a>
 
           {/* Download App Button with Pewa Icon */}

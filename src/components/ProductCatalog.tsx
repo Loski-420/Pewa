@@ -144,7 +144,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                 className="py-3 px-4 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/90 text-xs font-semibold tracking-wide transition cursor-pointer flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
               >
                 <MessageCircle className="w-4 h-4 fill-emerald-400 text-emerald-400" />
-                <span>WhatsApp (0712610337)</span>
+                <span>WhatsApp (@pewakitu.shop)</span>
               </a>
 
               <button

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingBag, ArrowRight } from 'lucide-react';
 import { Product, CartItem, Order, Rider, OrderStatus, StoreSettings } from './types';
 import { INITIAL_PRODUCTS, INITIAL_RIDERS, INITIAL_ORDERS, INITIAL_SETTINGS } from './data/initialData';
@@ -17,8 +17,28 @@ import { DownloadAppModal } from './components/DownloadAppModal';
 import { WhatsAppChatButton } from './components/WhatsAppChatButton';
 import { AdminAuthLogin } from './components/AdminAuthLogin';
 import { getAdminToken, clearAdminToken } from './utils/adminToken';
+import {
+  db,
+  auth,
+  onAuthStateChanged,
+  signOut,
+  onSnapshot,
+  collection,
+  doc,
+  isFirebaseAdminUser,
+  signInAdminWithGoogle,
+  seedCatalogToFirestoreOnce,
+  saveProductToFirestore,
+  deleteProductFromFirestore,
+  replaceCatalogInFirestore,
+  savePublicSettingsToFirestore,
+  fromFirestoreProduct,
+  handleFirestoreError,
+  OperationType,
+  BANNED_SAMPLE_IDS,
+} from './firebase';
 
-export const CATALOG_VERSION = 'pewa_v2026_10_21_catalog_65_items_live_v7';
+export const CATALOG_VERSION = 'pewa_v2026_11_14_firestore_live_sync';
 
 export default function App() {
   // 1. Age Verification State (with localStorage persistence)
@@ -157,7 +177,7 @@ export default function App() {
         return false;
       };
 
-  // 8. Admin Domain & Authentication State (strictly for admin.pewakitu.shop)
+  // 8. Admin Domain & Authentication State (strictly for admin.pewakitu.shop or /admin)
   const [isAdminDomain, setIsAdminDomain] = useState<boolean>(checkIsAdminDomain);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     try {
@@ -166,6 +186,17 @@ export default function App() {
       return false;
     }
   });
+  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(false);
+  const [cloudSyncError, setCloudSyncError] = useState<string | null>(null);
+
+  const productsRef = useRef<Product[]>(products);
+  const isFirestoreAuthoritativeRef = useRef<boolean>(false);
+  const isFirestoreSeededRef = useRef<boolean>(false);
+  const lastLocalMutationRef = useRef<number>(0);
+
+  useEffect(() => {
+    productsRef.current = products;
+  }, [products]);
 
   useEffect(() => {
     const handleUrlCheck = () => {
@@ -173,6 +204,104 @@ export default function App() {
     };
     window.addEventListener('popstate', handleUrlCheck);
     return () => window.removeEventListener('popstate', handleUrlCheck);
+  }, []);
+
+  // Firebase Auth listener for Admin Cloud Sync
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      const authorized = await isFirebaseAdminUser(user);
+      setIsCloudConnected(authorized);
+      if (authorized) {
+        setCloudSyncError(null);
+        try {
+          await seedCatalogToFirestoreOnce(productsRef.current);
+        } catch (err: any) {
+          console.warn('Initial catalog sync check warning:', err);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleConnectCloudSync = async () => {
+    setCloudSyncError(null);
+    try {
+      await signInAdminWithGoogle();
+      setIsCloudConnected(true);
+      await seedCatalogToFirestoreOnce(productsRef.current);
+    } catch (err: any) {
+      setCloudSyncError(
+        err?.message || 'Failed to connect Google Cloud Sync. Please try again.'
+      );
+    }
+  };
+
+  // Real-Time Cloud Firestore Listeners (Authoritative across www.pewakitu.shop, pewakitu.shop, admin.pewakitu.shop, and mobile)
+  useEffect(() => {
+    const unsubMeta = onSnapshot(
+      doc(db, 'meta', 'catalog_state'),
+      (snap) => {
+        const seeded = snap.exists() && snap.data()?.seeded === true;
+        isFirestoreSeededRef.current = seeded;
+        if (seeded) {
+          isFirestoreAuthoritativeRef.current = true;
+        }
+      },
+      (error) => {
+        console.warn('Firestore meta listener error:', error);
+      }
+    );
+
+    const unsubProducts = onSnapshot(
+      collection(db, 'products'),
+      (snapshot) => {
+        if (snapshot.docs.length > 0 || isFirestoreSeededRef.current) {
+          isFirestoreAuthoritativeRef.current = true;
+          const liveProducts = snapshot.docs
+            .map((d) => fromFirestoreProduct(d.data()))
+            .filter((p) => !BANNED_SAMPLE_IDS.includes(p.id))
+            .map((p) => ({
+              ...p,
+              imageUrl: sanitizeImageUrl(p.imageUrl, p.category, p.name),
+            }));
+          setProducts(liveProducts);
+          try {
+            localStorage.setItem('pewa_products', JSON.stringify(liveProducts));
+          } catch (_) {}
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'products');
+      }
+    );
+
+    const unsubSettings = onSnapshot(
+      doc(db, 'settings', 'store'),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          setSettings((prev) => ({
+            ...prev,
+            storeName: data.storeName || prev.storeName,
+            ownerWhatsAppPhone: data.ownerWhatsAppPhone || prev.ownerWhatsAppPhone,
+            kopoKopoTillNumber: data.kopoKopoTillNumber || prev.kopoKopoTillNumber,
+            deliveryFee: typeof data.deliveryFee === 'number' ? data.deliveryFee : prev.deliveryFee,
+            minimumOrder: typeof data.minimumOrder === 'number' ? data.minimumOrder : prev.minimumOrder,
+            pointsPerOrder: typeof data.pointsPerOrder === 'number' ? data.pointsPerOrder : prev.pointsPerOrder,
+            pointValueInKes: typeof data.pointValueInKes === 'number' ? data.pointValueInKes : prev.pointValueInKes,
+          }));
+        }
+      },
+      (error) => {
+        console.warn('Firestore settings listener error:', error);
+      }
+    );
+
+    return () => {
+      unsubMeta();
+      unsubProducts();
+      unsubSettings();
+    };
   }, []);
 
   // 9. Navigation & Modals State
@@ -195,9 +324,11 @@ export default function App() {
     }
   }, [products]);
 
-  // Initial fetch and continuous real-time sync with server API (pewakitu.shop & admin.pewakitu.shop)
+  // Fallback sync with /api/products only when Cloud Firestore is not yet seeded
   useEffect(() => {
     const load = async () => {
+      if (isFirestoreAuthoritativeRef.current) return;
+      const requestStartedAt = Date.now();
       try {
         const res = await fetch(`/api/products?t=${Date.now()}`, {
           cache: 'no-store',
@@ -208,9 +339,12 @@ export default function App() {
         });
         if (!res.ok) return;
         const data = await res.json();
+        if (isFirestoreAuthoritativeRef.current || lastLocalMutationRef.current > requestStartedAt) {
+          return;
+        }
         if (Array.isArray(data) && data.length > 0) {
           const final = data
-            .filter((p: Product) => !['prod-wn4', 'prod-wn5', 'prod-ce9'].includes(p.id))
+            .filter((p: Product) => !BANNED_SAMPLE_IDS.includes(p.id))
             .map((p: Product) => ({
               ...p,
               imageUrl: sanitizeImageUrl(p.imageUrl, p.category, p.name),
@@ -228,13 +362,16 @@ export default function App() {
     load();
 
     const onVisible = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && !isFirestoreAuthoritativeRef.current) {
         load();
       }
     };
     document.addEventListener('visibilitychange', onVisible);
-    // Poll every 10 seconds so newly added/edited items and prices appear live on all devices
-    const timer = setInterval(load, 10000);
+    const timer = setInterval(() => {
+      if (!isFirestoreAuthoritativeRef.current) {
+        load();
+      }
+    }, 10000);
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
       clearInterval(timer);
@@ -418,61 +555,138 @@ export default function App() {
     }
   };
 
-  // Admin Product Actions
-  const handleAddProduct = (newProduct: Product) => {
-    setProducts((prev) => {
-      const productWithTimestamp: Product = {
-        ...newProduct,
-        isCustom: true,
-        updatedAt: Date.now(),
-      };
-      const updated = [productWithTimestamp, ...prev.filter((p) => p.id !== newProduct.id)];
-      broadcastAndSaveProducts(updated);
-      return updated;
-    });
+  // Admin Product Actions (Local + Broadcast + Server API + Cloud Firestore)
+  const handleAddProduct = async (newProduct: Product) => {
+    lastLocalMutationRef.current = Date.now();
+    const productWithTimestamp: Product = {
+      ...newProduct,
+      isCustom: true,
+      createdAt: newProduct.createdAt || Date.now(),
+      updatedAt: Date.now(),
+    };
+    const updated = [
+      productWithTimestamp,
+      ...productsRef.current.filter((p) => p.id !== newProduct.id),
+    ];
+    setProducts(updated);
+    broadcastAndSaveProducts(updated);
+
+    if (isCloudConnected) {
+      try {
+        await saveProductToFirestore(productWithTimestamp, 'create');
+        setCloudSyncError(null);
+      } catch (err: any) {
+        setCloudSyncError(err?.message || 'Failed to save new product to Cloud Firestore.');
+      }
+    } else {
+      setCloudSyncError('Item saved locally only. Click "Connect Cloud Sync" to publish across domains.');
+    }
   };
 
-  const handleUpdateProduct = (updatedProduct: Product) => {
-    setProducts((prev) => {
-      const productWithTimestamp: Product = {
-        ...updatedProduct,
-        updatedAt: Date.now(),
-      };
-      const updated = prev.map((p) => (p.id === updatedProduct.id ? productWithTimestamp : p));
-      broadcastAndSaveProducts(updated);
-      return updated;
-    });
+  const handleUpdateProduct = async (updatedProduct: Product) => {
+    lastLocalMutationRef.current = Date.now();
+    const productWithTimestamp: Product = {
+      ...updatedProduct,
+      updatedAt: Date.now(),
+    };
+    const updated = productsRef.current.map((p) =>
+      p.id === updatedProduct.id ? productWithTimestamp : p
+    );
+    setProducts(updated);
+    broadcastAndSaveProducts(updated);
+
+    if (isCloudConnected) {
+      try {
+        await saveProductToFirestore(productWithTimestamp, 'update');
+        setCloudSyncError(null);
+      } catch (err: any) {
+        setCloudSyncError(err?.message || 'Failed to update product in Cloud Firestore.');
+      }
+    } else {
+      setCloudSyncError('Edit saved locally only. Click "Connect Cloud Sync" to publish across domains.');
+    }
   };
 
-  const handleDeleteProduct = (productId: string) => {
-    setProducts((prev) => {
-      const updated = prev.filter((p) => p.id !== productId);
-      broadcastAndSaveProducts(updated);
-      return updated;
-    });
+  const handleDeleteProduct = async (productId: string) => {
+    lastLocalMutationRef.current = Date.now();
+    const updated = productsRef.current.filter((p) => p.id !== productId);
+    setProducts(updated);
     setCartItems((prev) => prev.filter((it) => it.product.id !== productId));
+    broadcastAndSaveProducts(updated);
+
+    if (isCloudConnected) {
+      try {
+        await deleteProductFromFirestore(productId);
+        setCloudSyncError(null);
+      } catch (err: any) {
+        setCloudSyncError(err?.message || 'Failed to delete product from Cloud Firestore.');
+      }
+    } else {
+      setCloudSyncError(
+        'Item removed locally only. Click "Connect Cloud Sync" so deletion reflects on pewakitu.shop!'
+      );
+    }
   };
 
   const handlePublishCatalog = async (): Promise<boolean> => {
+    lastLocalMutationRef.current = Date.now();
+    let apiOk = false;
     try {
-      localStorage.setItem('pewa_products', JSON.stringify(products));
+      localStorage.setItem('pewa_products', JSON.stringify(productsRef.current));
       const token = getAdminToken(true) || 'pewa_admin_token_active';
       const res = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-        body: JSON.stringify(products),
+        body: JSON.stringify(productsRef.current),
       });
       if (res.status === 401) clearAdminToken();
-      return res.ok;
+      if (res.ok) {
+        const json = await res.json().catch(() => ({}));
+        apiOk = json?.persisted !== false;
+      }
     } catch {
-      return false;
+      apiOk = false;
+    }
+
+    if (isCloudConnected) {
+      try {
+        await replaceCatalogInFirestore(productsRef.current);
+        setCloudSyncError(null);
+        return true;
+      } catch (err: any) {
+        setCloudSyncError(err?.message || 'Failed to publish catalog to Cloud Firestore.');
+        return apiOk;
+      }
+    }
+    setCloudSyncError('Click "Connect Cloud Sync" to synchronize catalog across pewakitu.shop.');
+    return apiOk;
+  };
+
+  const handleImportCatalog = async (imported: Product[]) => {
+    if (Array.isArray(imported) && imported.length > 0) {
+      lastLocalMutationRef.current = Date.now();
+      const cleaned = imported.filter((p) => !BANNED_SAMPLE_IDS.includes(p.id));
+      setProducts(cleaned);
+      broadcastAndSaveProducts(cleaned);
+      if (isCloudConnected) {
+        try {
+          await replaceCatalogInFirestore(cleaned);
+          setCloudSyncError(null);
+        } catch (err: any) {
+          setCloudSyncError(err?.message || 'Failed to import catalog to Cloud Firestore.');
+        }
+      }
     }
   };
 
-  const handleImportCatalog = (imported: Product[]) => {
-    if (Array.isArray(imported) && imported.length > 0) {
-      setProducts(imported);
-      broadcastAndSaveProducts(imported);
+  const handleUpdateSettings = async (nextSettings: StoreSettings) => {
+    setSettings(nextSettings);
+    if (isCloudConnected) {
+      try {
+        await savePublicSettingsToFirestore(nextSettings);
+      } catch (err: any) {
+        console.warn('Settings cloud sync warning:', err);
+      }
     }
   };
 
@@ -562,7 +776,10 @@ export default function App() {
               type="button"
               onClick={() => {
                 localStorage.removeItem('pewa_admin_auth');
+                localStorage.removeItem('pewa_admin_token');
                 sessionStorage.removeItem('pewa_admin_auth');
+                sessionStorage.removeItem('pewa_admin_token');
+                signOut(auth).catch(() => {});
                 setIsAdminAuthenticated(false);
               }}
               className="py-1.5 px-3.5 rounded-xl bg-red-950/60 hover:bg-red-900 border border-red-500/50 text-red-200 hover:text-white font-semibold text-xs tracking-wide transition cursor-pointer flex items-center gap-1.5 shadow"
@@ -602,10 +819,16 @@ export default function App() {
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onAssignRider={handleAssignRider}
             settings={settings}
-            onUpdateSettings={setSettings}
+            onUpdateSettings={handleUpdateSettings}
+            isCloudConnected={isCloudConnected}
+            cloudSyncError={cloudSyncError}
+            onConnectCloudSync={handleConnectCloudSync}
             onSignOut={() => {
               localStorage.removeItem('pewa_admin_auth');
+              localStorage.removeItem('pewa_admin_token');
               sessionStorage.removeItem('pewa_admin_auth');
+              sessionStorage.removeItem('pewa_admin_token');
+              signOut(auth).catch(() => {});
               setIsAdminAuthenticated(false);
             }}
           />

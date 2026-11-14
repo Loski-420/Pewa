@@ -1,0 +1,227 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Default-deny all reads and writes
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'talk2odongo@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidCategory(cat) {
+      return cat in [
+        'Whiskey',
+        'Vodka',
+        'Spirits & Liquors',
+        'Gin',
+        'Brandy',
+        'Wines',
+        'Beer',
+        'Munchies',
+        'Cigarettes & Extras'
+      ];
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll([
+        'id',
+        'name',
+        'brand',
+        'category',
+        'price',
+        'abv',
+        'volume',
+        'origin',
+        'isLocal',
+        'description',
+        'tastingNotes',
+        'imageUrl',
+        'stock',
+        'rating',
+        'reviewCount',
+        'popularityScore',
+        'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id',
+        'name',
+        'brand',
+        'category',
+        'price',
+        'originalPrice',
+        'abv',
+        'volume',
+        'origin',
+        'isLocal',
+        'description',
+        'tastingNotes',
+        'imageUrl',
+        'stock',
+        'rating',
+        'reviewCount',
+        'popularityScore',
+        'isCustom',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      isValidId(data.id) &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
+      data.brand is string && data.brand.size() >= 1 && data.brand.size() <= 120 &&
+      data.category is string && isValidCategory(data.category) &&
+      data.price is number && data.price >= 0 && data.price <= 10000000 &&
+      (!('originalPrice' in data) || (data.originalPrice is number && data.originalPrice >= 0 && data.originalPrice <= 10000000)) &&
+      data.abv is number && data.abv >= 0 && data.abv <= 100 &&
+      data.volume is string && data.volume.size() >= 1 && data.volume.size() <= 80 &&
+      data.origin is string && data.origin.size() >= 1 && data.origin.size() <= 80 &&
+      data.isLocal is bool &&
+      data.description is string && data.description.size() <= 2000 &&
+      data.tastingNotes is list && data.tastingNotes.size() <= 10 &&
+      (data.tastingNotes.size() == 0 || (data.tastingNotes[0] is string && data.tastingNotes[0].size() <= 80)) &&
+      data.imageUrl is string && data.imageUrl.size() <= 700000 &&
+      data.stock is number && data.stock >= 0 && data.stock <= 1000000 &&
+      data.rating is number && data.rating >= 0 && data.rating <= 5 &&
+      data.reviewCount is number && data.reviewCount >= 0 && data.reviewCount <= 10000000 &&
+      data.popularityScore is number && data.popularityScore >= 0 && data.popularityScore <= 10000000 &&
+      (!('isCustom' in data) || data.isCustom is bool) &&
+      (!('createdAt' in data) || (data.createdAt is number && data.createdAt >= 0)) &&
+      data.updatedAt == request.time;
+    }
+
+    function isValidCatalogMeta(data) {
+      return data.keys().hasAll(['seeded', 'updatedAt']) &&
+        data.keys().hasOnly(['seeded', 'updatedAt']) &&
+        data.seeded is bool &&
+        data.updatedAt == request.time;
+    }
+
+    function isValidPublicSettings(data) {
+      return data.keys().hasAll([
+        'storeName',
+        'ownerWhatsAppPhone',
+        'kopoKopoTillNumber',
+        'deliveryFee',
+        'minimumOrder',
+        'pointsPerOrder',
+        'pointValueInKes',
+        'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'storeName',
+        'ownerWhatsAppPhone',
+        'kopoKopoTillNumber',
+        'deliveryFee',
+        'minimumOrder',
+        'pointsPerOrder',
+        'pointValueInKes',
+        'updatedAt'
+      ]) &&
+      data.storeName is string && data.storeName.size() >= 1 && data.storeName.size() <= 120 &&
+      data.ownerWhatsAppPhone is string && data.ownerWhatsAppPhone.size() >= 9 && data.ownerWhatsAppPhone.size() <= 20 &&
+      data.kopoKopoTillNumber is string && data.kopoKopoTillNumber.size() >= 3 && data.kopoKopoTillNumber.size() <= 20 &&
+      data.deliveryFee is number && data.deliveryFee >= 0 && data.deliveryFee <= 100000 &&
+      data.minimumOrder is number && data.minimumOrder >= 0 && data.minimumOrder <= 1000000 &&
+      data.pointsPerOrder is number && data.pointsPerOrder >= 0 && data.pointsPerOrder <= 100000 &&
+      data.pointValueInKes is number && data.pointValueInKes >= 0 && data.pointValueInKes <= 1000 &&
+      data.updatedAt == request.time;
+    }
+
+    function isValidAdminUser(data) {
+      return data.keys().hasAll(['email', 'role', 'createdAt']) &&
+        data.keys().hasOnly(['email', 'role', 'createdAt']) &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 254 &&
+        data.role == 'admin' &&
+        data.createdAt == request.time;
+    }
+
+    // Storefront Product Catalog (Public non-PII catalog readable by shoppers, writable only by verified admins)
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if resource.data.id is string && resource.data.price is number;
+      allow create: if isAdmin() &&
+        isValidId(productId) &&
+        isValidProduct(incoming()) &&
+        incoming().id == productId;
+      allow update: if isAdmin() &&
+        isValidId(productId) &&
+        isValidProduct(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'name',
+          'brand',
+          'category',
+          'price',
+          'originalPrice',
+          'abv',
+          'volume',
+          'origin',
+          'isLocal',
+          'description',
+          'tastingNotes',
+          'imageUrl',
+          'stock',
+          'rating',
+          'reviewCount',
+          'popularityScore',
+          'isCustom',
+          'updatedAt'
+        ]);
+      allow delete: if isAdmin() && isValidId(productId);
+    }
+
+    // One-time seeding metadata (prevents auto-re-adding deleted products)
+    match /meta/{docId} {
+      allow get: if isValidId(docId);
+      allow list: if false;
+      allow create, update: if isAdmin() && isValidId(docId) && isValidCatalogMeta(incoming());
+      allow delete: if false;
+    }
+
+    // Public storefront settings (no passwords or API secrets)
+    match /settings/{docId} {
+      allow get: if isValidId(docId);
+      allow list: if false;
+      allow create, update: if isAdmin() && isValidId(docId) && isValidPublicSettings(incoming());
+      allow delete: if false;
+    }
+
+    // Admin role registry
+    match /admins/{uid} {
+      allow get: if isSignedIn() && isValidId(uid) && (request.auth.uid == uid || isAdmin());
+      allow list: if false;
+      allow create: if isAdmin() && isValidId(uid) && isValidAdminUser(incoming());
+      allow update: if isAdmin() && isValidId(uid) && isValidAdminUser(incoming()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin() && isValidId(uid);
+    }
+
+    // Connection health check path
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+      allow list, write: if false;
+    }
+  }
+}

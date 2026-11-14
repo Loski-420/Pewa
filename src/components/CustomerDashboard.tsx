@@ -431,7 +431,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                       className="px-3 py-1.5 rounded-lg bg-[#14151e] border border-neutral-700 hover:border-emerald-500/50 text-neutral-300 hover:text-emerald-300 text-xs font-medium flex items-center gap-1.5 transition"
                     >
                       <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Support (0712610337)</span>
+                      <span>Support (@pewakitu.shop)</span>
                     </a>
                   </div>
                 </div>

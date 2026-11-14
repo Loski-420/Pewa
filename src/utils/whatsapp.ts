@@ -1,5 +1,7 @@
 import { Order, StoreSettings } from '../types';
 
+export const WHATSAPP_DISPLAY_USERNAME = '@pewakitu.shop';
+
 export function formatWhatsAppOrderMessage(order: Order, settings: StoreSettings): string {
   const itemsText = order.items
     .map(
@@ -18,7 +20,7 @@ export function formatWhatsAppOrderMessage(order: Order, settings: StoreSettings
       : '';
 
   const message = `🚨 *NEW PEWA DRINKS & MUNCHIES ORDER DISPATCH*
-To: *0712610337*
+To: *${WHATSAPP_DISPLAY_USERNAME}*
 
 📦 *Order #:* ${order.orderNumber}
 🕒 *Placed At:* ${new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -49,7 +51,7 @@ ${discountLine}• Delivery Fee: KES ${order.deliveryFee.toLocaleString()}
 • Buy Goods Till: *${settings.kopoKopoTillNumber || '349797'}*
 
 ━━━━━━━━━━━━━━━━━━━━
-🛵 *ACTION FOR 0712610337:*
+🛵 *ACTION FOR ${WHATSAPP_DISPLAY_USERNAME}:*
 Please dispatch a rider to *${order.customerName}* at *${order.location.estate}* immediately! Call or WhatsApp customer at *${order.safaricomPhone}*.`;
 
   return message;
@@ -85,7 +87,7 @@ export function getDirectWhatsAppUrl(
 
 export function generateWhatsAppLink(order: Order, settings: StoreSettings): string {
   const message = formatWhatsAppOrderMessage(order, settings);
-  const targetPhone = '254712610337'; // Direct dispatch to 0712610337
+  const targetPhone = formatKenyanPhoneForWhatsApp(settings.ownerWhatsAppPhone || '254712610337');
   return `https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}`;
 }
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Lock, Phone, Eye, EyeOff, ArrowRight, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
+import { ShieldCheck, Lock, Phone, Eye, EyeOff, ArrowRight, AlertCircle, CheckCircle, ExternalLink, Cloud } from 'lucide-react';
 import { StoreSettings } from '../types';
+import { auth, isFirebaseAdminUser, signInAdminWithGoogle, ADMIN_BOOTSTRAP_EMAIL } from '../firebase';
 
 interface AdminAuthLoginProps {
   settings: StoreSettings;
@@ -20,6 +21,8 @@ export const AdminAuthLogin: React.FC<AdminAuthLoginProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [needsGoogleSync, setNeedsGoogleSync] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // Expected Admin Credentials
   const expectedPhone = (settings.adminPhone || settings.ownerWhatsAppPhone || '0712610337').replace(/[^0-9]/g, '');
@@ -29,12 +32,31 @@ export const AdminAuthLogin: React.FC<AdminAuthLoginProps> = ({
     return val.replace(/[^0-9+]/g, '');
   };
 
+  const handleGoogleAuthorize = async () => {
+    setErrorMsg('');
+    setIsGoogleLoading(true);
+    try {
+      await signInAdminWithGoogle();
+      setIsSuccess(true);
+      setTimeout(() => {
+        onSuccess();
+      }, 450);
+    } catch (err: any) {
+      setErrorMsg(
+        err?.message ||
+          `Could not authorize Google Cloud Sync. Please sign in with ${ADMIN_BOOTSTRAP_EMAIL}.`
+      );
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setIsLoading(true);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const cleanedInputPhone = phoneNumber.replace(/[^0-9]/g, '');
       
       // Allow matching either 0712610337 or 254712610337
@@ -53,7 +75,6 @@ export const AdminAuthLogin: React.FC<AdminAuthLoginProps> = ({
         password === 'PewaAdmin2026!';
 
       if (isPhoneMatch && isPasswordMatch) {
-        setIsSuccess(true);
         // Persist session across all token keys
         const token = `pewa_admin_token_${Date.now()}`;
         if (rememberMe) {
@@ -79,9 +100,16 @@ export const AdminAuthLogin: React.FC<AdminAuthLoginProps> = ({
           })
           .catch(() => {});
 
-        setTimeout(() => {
-          onSuccess();
-        }, 600);
+        const alreadyFirebaseAdmin = await isFirebaseAdminUser(auth.currentUser);
+        if (alreadyFirebaseAdmin) {
+          setIsSuccess(true);
+          setTimeout(() => {
+            onSuccess();
+          }, 450);
+        } else {
+          setIsLoading(false);
+          setNeedsGoogleSync(true);
+        }
       } else {
         setIsLoading(false);
         if (!isPhoneMatch) {
@@ -90,7 +118,7 @@ export const AdminAuthLogin: React.FC<AdminAuthLoginProps> = ({
           setErrorMsg('Incorrect password. Please verify and try again.');
         }
       }
-    }, 450);
+    }, 300);
   };
 
   return (
@@ -121,7 +149,9 @@ export const AdminAuthLogin: React.FC<AdminAuthLoginProps> = ({
               Pewa Administration
             </h1>
             <p className="text-xs text-neutral-400 mt-1 max-w-xs">
-              Sign in with your administrator phone number and password to manage products, prices, and orders.
+              {needsGoogleSync
+                ? 'Connect your store owner Google account to sync product edits and deletions across all domains and devices.'
+                : 'Sign in with your administrator phone number and password to manage products, prices, and orders.'}
             </p>
           </div>
 
@@ -141,7 +171,43 @@ export const AdminAuthLogin: React.FC<AdminAuthLoginProps> = ({
             </div>
           )}
 
-          {/* Form */}
+          {needsGoogleSync ? (
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-[#141722] border border-[#d4af37]/30 text-xs text-neutral-300 space-y-2">
+                <div className="flex items-center gap-2 font-semibold text-[#fae59e]">
+                  <Cloud className="w-4 h-4 text-[#d4af37]" />
+                  <span>Step 2: Authorize Live Cloud Database</span>
+                </div>
+                <p className="text-neutral-400 leading-relaxed">
+                  Phone credentials verified. Authorize once with{' '}
+                  <strong className="text-white font-mono">{ADMIN_BOOTSTRAP_EMAIL}</strong> so deletions on{' '}
+                  <span className="text-white">www.pewakitu.shop/admin</span> immediately update{' '}
+                  <span className="text-white">pewakitu.shop</span>.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleAuthorize}
+                disabled={isGoogleLoading || isSuccess}
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#aa801a] text-black font-bold text-xs tracking-wider uppercase flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.99] transition cursor-pointer shadow-[0_0_25px_rgba(212,175,55,0.3)] disabled:opacity-50"
+              >
+                {isGoogleLoading ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                    <span>Connecting Google Cloud Sync...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Connect Cloud Sync with Google</span>
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+          /* Form */
           <form onSubmit={handleSubmit} className="space-y-4 text-left">
             {/* Phone input */}
             <div>
@@ -232,6 +298,7 @@ export const AdminAuthLogin: React.FC<AdminAuthLoginProps> = ({
               )}
             </button>
           </form>
+          )}
 
           {/* Quick Setup Hint */}
           <div className="mt-6 pt-5 border-t border-neutral-800/80 text-center">

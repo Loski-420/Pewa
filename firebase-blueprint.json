@@ -1,0 +1,235 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A beverage, spirit, wine, beer, or snack item listed in the Pewa catalog.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique product identifier.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the product.",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "brand": {
+          "type": "string",
+          "description": "Brand or producer name.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "category": {
+          "type": "string",
+          "description": "Storefront category.",
+          "enum": [
+            "Whiskey",
+            "Vodka",
+            "Spirits & Liquors",
+            "Gin",
+            "Brandy",
+            "Wines",
+            "Beer",
+            "Munchies",
+            "Cigarettes & Extras"
+          ]
+        },
+        "price": {
+          "type": "number",
+          "description": "Current selling price in KES."
+        },
+        "originalPrice": {
+          "type": "number",
+          "description": "Optional previous price in KES."
+        },
+        "abv": {
+          "type": "number",
+          "description": "Alcohol by volume percentage."
+        },
+        "volume": {
+          "type": "string",
+          "description": "Bottle volume or pack size.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "origin": {
+          "type": "string",
+          "description": "Country or region of origin.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "isLocal": {
+          "type": "boolean",
+          "description": "Whether the product is locally produced."
+        },
+        "description": {
+          "type": "string",
+          "description": "Product description.",
+          "maxLength": 2000
+        },
+        "tastingNotes": {
+          "type": "array",
+          "description": "Short tasting note labels (max 10)."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL or compressed data URI for the product image.",
+          "maxLength": 700000
+        },
+        "stock": {
+          "type": "number",
+          "description": "Available inventory quantity."
+        },
+        "rating": {
+          "type": "number",
+          "description": "Average customer rating (0 to 5)."
+        },
+        "reviewCount": {
+          "type": "number",
+          "description": "Number of reviews."
+        },
+        "popularityScore": {
+          "type": "number",
+          "description": "Popularity ranking score."
+        },
+        "isCustom": {
+          "type": "boolean",
+          "description": "Whether the product was added or customized via admin."
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Creation epoch timestamp in milliseconds."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "brand",
+        "category",
+        "price",
+        "abv",
+        "volume",
+        "origin",
+        "isLocal",
+        "description",
+        "tastingNotes",
+        "imageUrl",
+        "stock",
+        "rating",
+        "reviewCount",
+        "popularityScore",
+        "updatedAt"
+      ]
+    },
+    "CatalogMeta": {
+      "title": "CatalogMeta",
+      "description": "Tracks one-time catalog initialization so deleted items are never auto-restored.",
+      "type": "object",
+      "properties": {
+        "seeded": {
+          "type": "boolean",
+          "description": "Whether initial catalog seeding has been completed."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of metadata update."
+        }
+      },
+      "required": ["seeded", "updatedAt"]
+    },
+    "PublicStoreSettings": {
+      "title": "PublicStoreSettings",
+      "description": "Public storefront configuration without secrets or credentials.",
+      "type": "object",
+      "properties": {
+        "storeName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "ownerWhatsAppPhone": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "kopoKopoTillNumber": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "deliveryFee": {
+          "type": "number"
+        },
+        "minimumOrder": {
+          "type": "number"
+        },
+        "pointsPerOrder": {
+          "type": "number"
+        },
+        "pointValueInKes": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "storeName",
+        "ownerWhatsAppPhone",
+        "kopoKopoTillNumber",
+        "deliveryFee",
+        "minimumOrder",
+        "pointsPerOrder",
+        "pointValueInKes",
+        "updatedAt"
+      ]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized administrator registry record.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "maxLength": 254
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["email", "role", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Live product catalog readable by storefront shoppers and managed by authenticated admins."
+    },
+    "/meta/{docId}": {
+      "schema": { "$ref": "#/entities/CatalogMeta" },
+      "description": "Catalog initialization state so deletions persist permanently."
+    },
+    "/settings/{docId}": {
+      "schema": { "$ref": "#/entities/PublicStoreSettings" },
+      "description": "Public storefront settings."
+    },
+    "/admins/{uid}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Authorized admin users."
+    }
+  }
+}
