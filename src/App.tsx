@@ -34,24 +34,17 @@ export default function App() {
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Preserve 100% of user edits and custom products
-          const existingList = parsed.map((p) => ({
-            ...p,
-            imageUrl: sanitizeImageUrl(p.imageUrl, p.category, p.name),
-          }));
-
-          // Add any new default items from INITIAL_PRODUCTS that don't exist yet
-          const existingIds = new Set(parsed.map((p) => p.id));
-          const missingDefaults = INITIAL_PRODUCTS.filter((initP) => !existingIds.has(initP.id)).map((initP) => ({
-            ...initP,
-            imageUrl: sanitizeImageUrl(initP.imageUrl, initP.category, initP.name),
-          }));
-
-          const merged = [...existingList, ...missingDefaults];
+          // Preserve user's exact product list without auto-injecting extra items
+          const cleaned = parsed
+            .filter((p) => !['prod-wn4', 'prod-wn5', 'prod-ce9'].includes(p.id))
+            .map((p) => ({
+              ...p,
+              imageUrl: sanitizeImageUrl(p.imageUrl, p.category, p.name),
+            }));
           try {
-            localStorage.setItem('pewa_products', JSON.stringify(merged));
+            localStorage.setItem('pewa_products', JSON.stringify(cleaned));
           } catch (_) {}
-          return merged;
+          return cleaned;
         }
       }
     } catch (e) {
@@ -216,10 +209,12 @@ export default function App() {
         if (!res.ok) return;
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          const final = data.map((p: Product) => ({
-            ...p,
-            imageUrl: sanitizeImageUrl(p.imageUrl, p.category, p.name),
-          }));
+          const final = data
+            .filter((p: Product) => !['prod-wn4', 'prod-wn5', 'prod-ce9'].includes(p.id))
+            .map((p: Product) => ({
+              ...p,
+              imageUrl: sanitizeImageUrl(p.imageUrl, p.category, p.name),
+            }));
           setProducts(final);
           try {
             localStorage.setItem('pewa_products', JSON.stringify(final));
